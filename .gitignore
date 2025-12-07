@@ -1,0 +1,18 @@
+# Ignore Gradle build files
+.gradle/
+build/
+
+# Ignore sensitive files
+tokens/
+credentials.json
+
+# Ignore IDE files
+.idea/
+*.iml
+
+# Ignore log files
+logs/
+
+# Ignore OS-specific files
+.DS_Store
+Thumbs.db
