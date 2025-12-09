@@ -3,32 +3,21 @@
   "id": "cloudsaves",
   "version": "${version}",
   "name": "Cloud Saves",
-  "description": "A Minecraft mod for cloud saves using Google Drive.",
-  "authors": [
-    "Your Name"
-  ],
-  "contact": {
-    "homepage": "https://example.com/",
-    "sources": "https://github.com/YourName/CloudSaves"
-  },
-  "license": "CC0-1.0",
-  "icon": "assets/cloudsaves/icon.png",
+  "description": "Cloud save integration for single-player worlds (example).",
+  "authors": ["zinngar"],
+  "contact": {},
+  "license": "MIT",
   "environment": "*",
   "entrypoints": {
     "main": [
       "com.example.mod.CloudSaves"
     ]
   },
-  "mixins": [
-    "cloudsaves.mixins.json"
-  ],
   "depends": {
     "fabricloader": ">=0.15.11",
-    "fabric": "*",
-    "minecraft": "~1.21.1",
-    "java": ">=17"
+    "fabric": "*"
   },
-  "suggests": {
-    "another-mod": "*"
-  }
+  "mixins": [
+    "cloudsaves.mixins.json"
+  ]
 }

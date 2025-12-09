@@ -1,68 +1,64 @@
-# Cloud Saves Minecraft Mod
+# Cloud Saves Fabric Mod
 
-A Fabric mod for Minecraft that allows you to save and load your single-player worlds to and from Google Drive. This ensures your worlds are backed up and accessible from any computer.
+This is a Fabric mod for Minecraft 1.21.1 that allows you to save and load your single-player worlds to and from the cloud. It currently supports Google Drive and GitHub as cloud storage providers.
 
 ## Features
 
-*   **Cloud Saves:** Save your single-player worlds directly to your personal Google Drive account.
-*   **Cloud Loads:** Load your worlds from Google Drive on any machine with the mod installed.
-*   **Simple UI:** Adds "Save to Cloud" and "Load from Cloud" buttons to the main menu for easy access.
+*   **Cloud Backup:** Upload your Minecraft worlds to Google Drive or a private GitHub repository.
+*   **Cloud Sync:** Download your worlds from the cloud to play on different computers.
+*   **Simple UI:** Buttons on the main menu allow for easy saving and loading of worlds.
 
-### Planned Features
+## Build
 
-*   Automatic background backups.
-*   Support for multiple cloud save slots.
-*   In-game management of cloud saves.
-
-## Setup & Installation
-
-### Requirements
-
-*   Minecraft 1.21.1
-*   [Fabric Loader](https://fabricmc.net/use/installer/) (at least version 0.15.11)
-*   [Fabric API](https://modrinth.com/mod/fabric-api)
-
-### Installation
-
-1.  Download the latest release of the mod from the [releases page](https://github.com/YourName/CloudSaves/releases).
-2.  Place the downloaded `.jar` file into your `mods` folder, which is located in your Minecraft directory.
-3.  Run the game once to generate the necessary configuration files.
-
-### Building from Source
-
-If you want to build the mod yourself, follow these steps:
-
-1.  Clone this repository: `git clone https://github.com/YourName/CloudSaves.git`
-2.  Navigate to the project directory: `cd CloudSaves`
-3.  Run the Gradle build command: `./gradlew build`
-4.  The compiled mod `.jar` will be located in the `build/libs/` directory.
+1.  Ensure you have the Java 21 JDK installed and that your `JAVA_HOME` environment variable is set correctly.
+2.  From the project root directory, run the following command:
+    ```bash
+    ./gradlew build
+    ```
+3.  The compiled mod `.jar` file will be located in the `build/libs/` directory.
 
 ## Configuration
 
-This mod requires you to provide your own Google Drive API credentials to function. This ensures that your world saves are only accessible to you.
+Before using the mod, you need to configure it by editing the `cloudsaves.json` file located in your Minecraft `config` directory.
 
-### Creating `credentials.json`
+### General Configuration
 
-1.  **Go to the Google Cloud Console:** Navigate to [https://console.cloud.google.com/](https://console.cloud.google.com/) and sign in with your Google account.
-2.  **Create a New Project:** If you don't have one already, create a new project.
-3.  **Enable the Google Drive API:**
-    *   In the navigation menu, go to **APIs & Services > Library**.
-    *   Search for "Google Drive API" and enable it for your project.
-4.  **Configure the OAuth Consent Screen:**
-    *   Go to **APIs & Services > OAuth consent screen**.
-    *   Choose **External** and click **Create**.
-    *   Fill in the required fields (App name, User support email, Developer contact information). You can leave the rest blank for now.
-    *   On the "Scopes" and "Test users" pages, you can click "Save and Continue" without adding anything.
-5.  **Create Credentials:**
-    *   Go to **APIs & Services > Credentials**.
-    *   Click **+ CREATE CREDENTIALS** and select **OAuth client ID**.
-    *   For **Application type**, select **Desktop app**.
-    *   Give it a name (e.g., "Minecraft Cloud Saves") and click **Create**.
-6.  **Download and Place the File:**
-    *   A window will pop up with your client ID and secret. Click **DOWNLOAD JSON**.
-    *   Rename the downloaded file to `credentials.json`.
-    *   Place this `credentials.json` file inside the `config/cloudsaves` directory in your Minecraft game folder. The mod will create this folder the first time you run it.
+*   `provider`: Set this to either `"google"` or `"github"` to choose your desired cloud storage provider.
 
-## License
+### Google Drive Configuration
 
-This project is licensed under the [CC0-1.0 License](LICENSE). Feel free to learn from it and incorporate it in your own projects.
+1.  **Set `provider` to `"google"`.**
+2.  **Create a Google Cloud Platform Project:**
+    *   Go to the [Google API Console](https://console.developers.google.com/).
+    *   Create a new project.
+    *   Enable the **Google Drive API** for your project.
+    *   From the "Credentials" page, create an **OAuth client ID** for a **Desktop app**.
+3.  **Fill in `clientId` and `clientSecret`:**
+    *   Copy the "Client ID" and "Client Secret" from the Google API Console into the respective fields in the `cloudsaves.json` file.
+4.  **First-time Login:**
+    *   When you first start Minecraft with the mod configured for Google Drive, a "Login with Google Drive" button will appear on the main menu.
+    *   Clicking this will open a Google authorization page in your web browser.
+    *   Log in and grant the mod permission to access your Google Drive.
+    *   After authorization, you will be redirected to a page confirming success. You can then close the browser window.
+    *   The mod will securely store a refresh token in the config file for future use.
+
+### GitHub Configuration
+
+1.  **Set `provider` to `"github"`.**
+2.  **Create a Personal Access Token (PAT):**
+    *   Go to your GitHub "Developer settings" page.
+    *   Generate a new "Personal access token (classic)".
+    *   Give it a descriptive name and grant it the `repo` scope.
+3.  **Fill in `personalAccessToken` and `repositoryUrl`:**
+    *   Copy the generated PAT into the `personalAccessToken` field in the `cloudsaves.json` file.
+    *   Set the `repositoryUrl` to the URL of the private GitHub repository where you want to store your worlds (e.g., `"https://github.com/YourUsername/MyMinecraftSaves"`).
+
+## ⚠️ Security Warning ⚠️
+
+The `cloudsaves.json` configuration file will store sensitive credentials, including your GitHub Personal Access Token and your Google Drive refresh token.
+
+**Treat this file like a password.** Anyone with access to this file could potentially access your files on Google Drive or your repositories on GitHub.
+
+*   **Do not share your `cloudsaves.json` file with anyone.**
+*   **Ensure the file is stored in a secure location.**
+*   **If you believe your credentials have been compromised, revoke them immediately from the respective service (Google or GitHub).**

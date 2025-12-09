@@ -1,9 +1,13 @@
 package com.example.mod.mixin;
 
+import com.example.mod.CloudSaveOperation;
 import com.example.mod.CloudSaves;
-import com.example.mod.GoogleDriveManager;
+import com.example.mod.GoogleDriveProvider;
+import com.example.mod.OperationType;
+import com.example.mod.client.screen.CloudSaveSelectionScreen;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.screen.TitleScreen;
+import net.minecraft.client.gui.screen.world.SelectWorldScreen;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.text.Text;
 import org.spongepowered.asm.mixin.Mixin;
@@ -21,28 +25,21 @@ public class TitleScreenMixin extends Screen {
     private void init(CallbackInfo ci) {
         int l = this.height / 4 + 48;
         this.addDrawableChild(ButtonWidget.builder(Text.translatable("menu.cloud_saves.save"), button -> {
-            GoogleDriveManager.getAccessToken().thenAccept(accessToken -> {
-                CloudSaves.LOGGER.info("Access token: " + accessToken);
-                // For now, we'll just create a dummy file to "upload"
-                java.io.File dummyFile = new java.io.File("dummy.txt");
-                try {
-                    dummyFile.createNewFile();
-                } catch (java.io.IOException e) {
-                    e.printStackTrace();
-                }
-                GoogleDriveManager.uploadFile(accessToken, dummyFile).thenRun(() -> {
-                    CloudSaves.LOGGER.info("File upload complete!");
-                });
-            });
+            CloudSaves.isSavingOperation = true;
+            CloudSaves.parentScreen = this;
+            this.client.setScreen(new SelectWorldScreen(this));
         }).dimensions(this.width / 2 - 100, l + 24, 200, 20).build());
+
         this.addDrawableChild(ButtonWidget.builder(Text.translatable("menu.cloud_saves.load"), button -> {
-            GoogleDriveManager.getAccessToken().thenAccept(accessToken -> {
-                CloudSaves.LOGGER.info("Access token: " + accessToken);
-                // For now, we'll just use a dummy file ID to "download"
-                GoogleDriveManager.downloadFile(accessToken, "dummy_file_id").thenAccept(file -> {
-                    CloudSaves.LOGGER.info("File download complete! File path: " + file.getAbsolutePath());
-                });
-            });
+            this.client.setScreen(new CloudSaveSelectionScreen(new CloudSaveOperation(OperationType.LOAD, this)));
         }).dimensions(this.width / 2 - 100, l + 48, 200, 20).build());
+
+        if ("google".equalsIgnoreCase(CloudSaves.CONFIG.provider) &&
+            (CloudSaves.CONFIG.google.refreshToken == null || CloudSaves.CONFIG.google.refreshToken.isEmpty())) {
+
+            this.addDrawableChild(ButtonWidget.builder(Text.literal("Login with Google Drive"), button -> {
+                new GoogleDriveProvider().initiateAuthorization();
+            }).dimensions(this.width / 2 - 100, l + 72, 200, 20).build());
+        }
     }
 }
