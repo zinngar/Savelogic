@@ -1,12 +1,20 @@
 # Cloud Saves Fabric Mod
 
-This is a Fabric mod for Minecraft 1.21.1 that allows you to save and load your single-player worlds to and from the cloud. It currently supports Google Drive and GitHub as cloud storage providers.
+This is a Fabric mod for Minecraft 1.21.10 that allows you to save and load your single-player worlds to and from the cloud. It currently supports Google Drive and GitHub as cloud storage providers.
 
 ## Features
 
 *   **Cloud Backup:** Upload your Minecraft worlds to Google Drive or a private GitHub repository.
 *   **Cloud Sync:** Download your worlds from the cloud to play on different computers.
 *   **Simple UI:** Buttons on the main menu allow for easy saving and loading of worlds.
+
+## Requirements
+
+To use this mod, you will need:
+
+*   **Minecraft 1.21.10**
+*   **Fabric Loader** (latest version recommended)
+*   **Fabric API** (latest version recommended)
 
 ## Build
 
