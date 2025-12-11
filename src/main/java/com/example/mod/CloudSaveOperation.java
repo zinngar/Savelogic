@@ -1,6 +1,6 @@
 package com.example.mod;
 
-import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.gui.screen.Screen;
 
 public class CloudSaveOperation {
     public final OperationType type;
