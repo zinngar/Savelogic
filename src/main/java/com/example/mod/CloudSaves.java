@@ -1,7 +1,7 @@
 package com.example.mod;
 
 import net.fabricmc.api.ModInitializer;
-import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.gui.screen.Screen;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

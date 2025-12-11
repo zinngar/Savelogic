@@ -5,56 +5,76 @@ import com.example.mod.CloudStorageProvider;
 import com.example.mod.GitHubStorageProvider;
 import com.example.mod.GoogleDriveProvider;
 import com.example.mod.util.ZipUtil;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.screens.worldselection.WorldSelectionList;
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.gui.screen.world.WorldListWidget;
 import net.minecraft.world.level.storage.LevelSummary;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import java.io.File;
 import java.nio.file.Path;
+import java.util.concurrent.CompletableFuture;
 
-@Mixin(WorldSelectionList.WorldListEntry.class)
+@Mixin(WorldListWidget.Entry.class)
 public abstract class WorldListWidgetEntryMixin {
 
     @Shadow @Final private LevelSummary summary;
-    @Shadow @Final private Minecraft minecraft;
 
-    @Inject(method = "mouseClicked", at = @At("HEAD"), cancellable = true)
-    private void onMouseClicked(double mouseX, double mouseY, int button, CallbackInfoReturnable<Boolean> cir) {
+    @Inject(method = "play", at = @At("HEAD"), cancellable = true)
+    private void onPlay(CallbackInfo ci) {
         if (CloudSaves.isSavingOperation) {
-            cir.setReturnValue(true);
-            CloudSaves.isSavingOperation = false;
+            ci.cancel(); // Prevent the world from loading
+            CloudSaves.isSavingOperation = false; // Reset the flag
 
-            CloudSaves.LOGGER.info("Attempting to save world: " + this.summary.getLevelId());
+            CloudSaves.LOGGER.info("Intercepted world selection for saving:");
+            CloudSaves.LOGGER.info("  Display Name: {}", summary.getDisplayName());
+            CloudSaves.LOGGER.info("  Folder Name: {}", summary.getName());
 
-            Path savesDir = this.minecraft.gameDirectory.toPath().resolve("saves");
-            Path worldDir = savesDir.resolve(this.summary.getLevelId());
+            MinecraftClient client = MinecraftClient.getInstance();
+            if (client == null) {
+                CloudSaves.LOGGER.error("MinecraftClient not available");
+                return;
+            }
 
-            try {
-                Path zipPath = ZipUtil.zipWorld(worldDir);
-                File zipFile = zipPath.toFile();
-                CloudSaves.LOGGER.info("Successfully zipped world: " + this.summary.getLevelId());
+            // Correct 1.21.1 API: resolve saves directory
+            Path savesDir = client.getLevelStorage().getSavesDirectory();
 
-                CloudStorageProvider provider;
-                if ("google".equalsIgnoreCase(CloudSaves.CONFIG.provider)) {
-                    provider = new GoogleDriveProvider();
-                } else {
-                    provider = new GitHubStorageProvider();
+            // Full path to the selected world
+            Path worldDir = savesDir.resolve(summary.getName());
+
+            File worldDirFile = worldDir.toFile();
+            if (!worldDirFile.exists() || !worldDirFile.isDirectory()) {
+                CloudSaves.LOGGER.error("World directory does not exist: {}", worldDir);
+                return;
+            }
+
+            CloudSaves.LOGGER.info("Resolved world directory: {}", worldDir.toAbsolutePath());
+
+            // Choose storage provider
+            CloudStorageProvider provider;
+            if ("github".equalsIgnoreCase(CloudSaves.CONFIG.provider)) {
+                provider = new GitHubStorageProvider();
+            } else {
+                provider = new GoogleDriveProvider();
+            }
+
+            CompletableFuture.runAsync(() -> {
+                try {
+                    CloudSaves.LOGGER.info("Zipping world...");
+                    Path zip = ZipUtil.zipWorld(worldDir);
+                    CloudSaves.LOGGER.info("World zipped to: {}", zip.toAbsolutePath());
+                    provider.uploadSave(zip.toFile());
+                } catch (Exception e) {
+                    CloudSaves.LOGGER.error("Failed to zip and upload world", e);
                 }
+            });
 
-                provider.uploadSave(zipFile);
-            } catch (Exception e) {
-                CloudSaves.LOGGER.error("Failed to save world", e);
-            }
-
-            if (CloudSaves.parentScreen != null) {
-                this.minecraft.setScreen(CloudSaves.parentScreen);
-            }
+            // Return to parent screen
+            client.setScreen(CloudSaves.parentScreen);
         }
     }
 }

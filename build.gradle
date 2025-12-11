@@ -1,10 +1,13 @@
 plugins {
-	id 'fabric-loom' version '1.12-SNAPSHOT'
-	id 'maven-publish'
+    id 'fabric-loom' version "${loom_version}"
+    id 'maven-publish'
 }
 
+version = project.mod_version
+group = project.maven_group
+
 base {
-	archivesName = project.archives_base_name
+    archivesName = project.archives_base_name
 }
 
 repositories {
@@ -13,81 +16,24 @@ repositories {
     maven { url = "https://maven.fabricmc.net/" }
 }
 
-version = project.minecraft_version+'-'+project.mod_version+'+v'+new Date().format('yyMMdd')
-group = project.maven_group
-
-loom {
-	// accessWidenerPath = file("src/main/resources/carpet.accesswidener")
-	runtimeOnlyLog4j = true
-}
-
 dependencies {
-	// To change the versions see the gradle.properties file
-	minecraft "com.mojang:minecraft:${project.minecraft_version}"
-	mappings loom.officialMojangMappings()
-	modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
+    minecraft "com.mojang:minecraft:${project.minecraft_version}"
 
-	// Fabric API. This is technically optional, but you probably want it anyway.
-	//modImplementation "net.fabricmc:fabric:${project.fabric_version}"
-	//modCompileOnly fabricApi.module("fabric-rendering-v1", project.fabric_version)
+    mappings "net.fabricmc:yarn:${project.yarn_mappings}:v2"
 
-	// PSA: Some older mods, compiled on Loom 0.2.1, might have outdated Maven POMs.
-	// You may need to force-disable transitiveness on them.
-	compileOnly "com.google.code.findbugs:jsr305:${project.jsr305_version}"
+    modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
+    modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
 
-	modImplementation "com.squareup.okhttp3:okhttp:4.12.0"
-}
-
-processResources {
-	inputs.property "version", project.version+'+v'+new Date().format('yyMMdd')
-
-	filesMatching("fabric.mod.json") {
-		expand "version": project.mod_version+'+v'+new Date().format('yyMMdd')
-	}
-}
-
-
-tasks.withType(JavaCompile).configureEach {
-	// ensure that the encoding is set to UTF-8, no matter what the system default is
-	// this fixes some edge cases with special characters not displaying correctly
-	// see http://yodaconditions.net/blog/fix-for-java-file-encoding-problems-with-gradle.html
-	// If Javadoc is generated, this must be specified in that task too.
-	it.options.encoding = "UTF-8"
-
-	// Minecraft 1.20.5 upwards uses Java 21.
-	it.options.release = 21
+    modImplementation "com.squareup.okhttp3:okhttp:4.12.0"
+    // gson is already provided by Minecraft – only add if you truly need a newer API
 }
 
 java {
-	// Loom will automatically attach sourcesJar to a RemapSourcesJar task and to the "build" task
-	// if it is present.
-	// If you remove this line, sources will not be generated.
-	withSourcesJar()
-
-	sourceCompatibility = JavaVersion.VERSION_21
-	targetCompatibility = JavaVersion.VERSION_21
+    withSourcesJar()
+    sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
 }
 
-jar {
-	from("LICENSE") {
-		rename { "${it}_${project.archives_base_name}"}
-	}
-}
-
-// configure the maven publication
-publishing {
-	publications {
-		mavenJava(MavenPublication) {
-			from components.java
-		}
-	}
-
-	// Select the repositories you want to publish to
-	// To publish to maven local, no extra repositories are necessary. Just use the task `publishToMavenLocal`.
-	repositories {
-		// See https://docs.gradle.org/current/userguide/publishing_maven.html for information on how to set up publishing.
-		maven {
-			url "$projectDir/publish"
-		}
-	}
+tasks.withType(JavaCompile).configureEach {
+    it.options.release = 21
 }
