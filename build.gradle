@@ -7,6 +7,12 @@ base {
 	archivesName = project.archives_base_name
 }
 
+repositories {
+    mavenCentral()
+    google()
+    maven { url = "https://maven.fabricmc.net/" }
+}
+
 version = project.minecraft_version+'-'+project.mod_version+'+v'+new Date().format('yyMMdd')
 group = project.maven_group
 
