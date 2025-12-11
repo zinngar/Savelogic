@@ -70,3 +70,9 @@ The `cloudsaves.json` configuration file will store sensitive credentials, inclu
 *   **Do not share your `cloudsaves.json` file with anyone.**
 *   **Ensure the file is stored in a secure location.**
 *   **If you believe your credentials have been compromised, revoke them immediately from the respective service (Google or GitHub).**
+
+## Support
+
+If you find this mod helpful, please consider supporting its development:
+
+[<img src="https://www.paypalobjects.com/en_AU/i/btn/btn_donate_LG.gif" alt="Donate with PayPal" width="92" />](https://www.paypal.com/donate/?business=RQFEAWX7E39CG&no_recurring=0&item_name=Support+Savelogic+Development+&currency_code=AUD)
