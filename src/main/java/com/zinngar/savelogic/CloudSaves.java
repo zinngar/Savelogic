@@ -1,5 +1,6 @@
-package com.example.mod;
+package com.zinngar.savelogic;
 
+import com.zinngar.savelogic.config.Config;
 import net.fabricmc.api.ModInitializer;
 import net.minecraft.client.gui.screen.Screen;
 import org.slf4j.Logger;

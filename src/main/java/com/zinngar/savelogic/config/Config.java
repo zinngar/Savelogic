@@ -1,4 +1,4 @@
-package com.example.mod;
+package com.zinngar.savelogic.config;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;

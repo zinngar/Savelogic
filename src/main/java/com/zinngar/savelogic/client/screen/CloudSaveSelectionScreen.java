@@ -1,11 +1,11 @@
-package com.example.mod.client.screen;
+package com.zinngar.savelogic.client.screen;
 
-import com.example.mod.CloudSaveOperation;
-import com.example.mod.CloudSaves;
-import com.example.mod.CloudStorageProvider;
-import com.example.mod.GitHubStorageProvider;
-import com.example.mod.GoogleDriveProvider;
-import com.example.mod.util.ZipUtil;
+import com.zinngar.savelogic.CloudSaveOperation;
+import com.zinngar.savelogic.CloudSaves;
+import com.zinngar.savelogic.CloudStorageProvider;
+import com.zinngar.savelogic.GitHubStorageProvider;
+import com.zinngar.savelogic.GoogleDriveProvider;
+import com.zinngar.savelogic.util.ZipUtil;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;

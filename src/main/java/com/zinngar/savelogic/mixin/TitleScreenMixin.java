@@ -1,10 +1,10 @@
-package com.example.mod.mixin;
+package com.zinngar.savelogic.mixin;
 
-import com.example.mod.CloudSaveOperation;
-import com.example.mod.CloudSaves;
-import com.example.mod.GoogleDriveProvider;
-import com.example.mod.OperationType;
-import com.example.mod.client.screen.CloudSaveSelectionScreen;
+import com.zinngar.savelogic.CloudSaveOperation;
+import com.zinngar.savelogic.CloudSaves;
+import com.zinngar.savelogic.GoogleDriveProvider;
+import com.zinngar.savelogic.OperationType;
+import com.zinngar.savelogic.client.screen.CloudSaveSelectionScreen;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.screen.TitleScreen;
 import net.minecraft.client.gui.screen.world.SelectWorldScreen;

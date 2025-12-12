@@ -1,5 +1,6 @@
-package com.example.mod;
+package com.zinngar.savelogic;
 
+import com.zinngar.savelogic.CloudStorageProvider;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import com.sun.net.httpserver.HttpServer;
@@ -132,7 +133,7 @@ public class GoogleDriveProvider implements CloudStorageProvider {
                 // Use a different media type for the metadata part
                 RequestBody metadataBody = RequestBody.create(
                     "{\"name\": \"" + zipFile.getName() + "\"}",
-                    MediaType.get("application/json; charset=utf--8")
+                    MediaType.get("application/json; charset=utf-8")
                 );
 
                 MultipartBody multipartBody = new MultipartBody.Builder()

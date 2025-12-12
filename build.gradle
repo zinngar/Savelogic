@@ -1,6 +1,5 @@
 plugins {
     id 'fabric-loom' version "${loom_version}"
-    id 'maven-publish'
 }
 
 version = project.mod_version
@@ -12,29 +11,31 @@ base {
 
 repositories {
     mavenCentral()
+    maven { url "https://maven.fabricmc.net/" }
     google()
-    maven { url = "https://maven.fabricmc.net/" }
 }
 
 dependencies {
-    minecraft "com.mojang:minecraft:${project.minecraft_version}"
+    minecraft "com.mojang:minecraft:${minecraft_version}"
+    mappings "net.fabricmc:yarn:${yarn_mappings}:v2"
 
-    mappings "net.fabricmc:yarn:${project.yarn_mappings}:v2"
+    modImplementation "net.fabricmc:fabric-loader:${loader_version}"
+    modImplementation "net.fabricmc.fabric-api:fabric-api:${fabric_api_version}"
 
-    modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
-    modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
-
+    // Cloud Save Dependencies
     modImplementation "com.squareup.okhttp3:okhttp:4.12.0"
     include "com.squareup.okhttp3:okhttp:4.12.0"
-    // gson is already provided by Minecraft – only add if you truly need a newer API
+    modImplementation "com.google.code.gson:gson:2.11.0"
+    include "com.google.code.gson:gson:2.11.0"
 }
 
 java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(java_version)
+    }
     withSourcesJar()
-    sourceCompatibility = JavaVersion.VERSION_21
-    targetCompatibility = JavaVersion.VERSION_21
 }
 
 tasks.withType(JavaCompile).configureEach {
-    it.options.release = 21
+    it.options.release = java_version as Integer
 }

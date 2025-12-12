@@ -1,6 +1,6 @@
 {
   "required": true,
-  "package": "com.example.mod.mixin",
+  "package": "com.zinngar.savelogic.mixin",
   "compatibilityLevel": "JAVA_21",
   "client": [
     "TitleScreenMixin",

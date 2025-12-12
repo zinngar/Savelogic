@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "id": "cloudsaves",
+  "id": "savelogic",
   "version": "${version}",
   "name": "Cloud Saves",
   "description": "Cloud save integration for single-player worlds (example).",
@@ -10,7 +10,7 @@
   "environment": "*",
   "entrypoints": {
     "main": [
-      "com.example.mod.CloudSaves"
+        "com.zinngar.savelogic.CloudSaves"
     ]
   },
   "depends": {
@@ -18,6 +18,6 @@
     "fabric": "*"
   },
   "mixins": [
-    "cloudsaves.mixins.json"
+    "savelogic.mixins.json"
   ]
 }

@@ -1,4 +1,4 @@
-package com.example.mod;
+package com.zinngar.savelogic;
 
 import net.minecraft.client.gui.screen.Screen;
 

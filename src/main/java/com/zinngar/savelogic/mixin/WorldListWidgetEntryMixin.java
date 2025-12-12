@@ -1,10 +1,10 @@
-package com.example.mod.mixin;
+package com.zinngar.savelogic.mixin;
 
-import com.example.mod.CloudSaves;
-import com.example.mod.CloudStorageProvider;
-import com.example.mod.GitHubStorageProvider;
-import com.example.mod.GoogleDriveProvider;
-import com.example.mod.util.ZipUtil;
+import com.zinngar.savelogic.CloudSaves;
+import com.zinngar.savelogic.CloudStorageProvider;
+import com.zinngar.savelogic.GoogleDriveProvider;
+import com.zinngar.savelogic.GitHubStorageProvider;
+import com.zinngar.savelogic.util.ZipUtil;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.screen.world.WorldListWidget;
 import net.minecraft.world.level.storage.LevelSummary;
