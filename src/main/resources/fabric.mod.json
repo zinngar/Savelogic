@@ -1,23 +1,25 @@
 {
   "schemaVersion": 1,
-  "id": "cloudsaves",
+  "id": "savelogic",
   "version": "${version}",
-  "name": "Cloud Saves",
-  "description": "Cloud save integration for single-player worlds (example).",
-  "authors": ["zinngar"],
-  "contact": {},
-  "license": "MIT",
+  "name": "SaveLogic",
   "environment": "*",
+
   "entrypoints": {
     "main": [
       "com.example.mod.CloudSaves"
+    ],
+    "client": [
+      "com.example.mod.CloudSavesClient"
     ]
   },
-  "depends": {
-    "fabricloader": ">=0.15.11",
-    "fabric": "*"
-  },
+
   "mixins": [
-    "cloudsaves.mixins.json"
-  ]
+    "savelogic.mixins.json"
+  ],
+
+  "depends": {
+    "fabricloader": ">=0.17.0",
+    "minecraft": "1.21.10"
+  }
 }

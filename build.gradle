@@ -12,28 +12,46 @@ base {
 
 repositories {
     mavenCentral()
-    google()
     maven { url = "https://maven.fabricmc.net/" }
 }
 
+loom {
+    splitEnvironmentSourceSets()
+
+    mods {
+        savelogic {
+            sourceSet sourceSets.main
+            sourceSet sourceSets.client
+        }
+    }
+}
+
 dependencies {
-    minecraft "com.mojang:minecraft:${project.minecraft_version}"
+    // Minecraft + mappings
+    minecraft "com.mojang:minecraft:${minecraft_version}"
+    mappings loom.officialMojangMappings()
 
-    mappings "net.fabricmc:yarn:${project.yarn_mappings}:v2"
+    // Fabric
+    modImplementation "net.fabricmc:fabric-loader:${loader_version}"
+    modImplementation "net.fabricmc.fabric-api:fabric-api:${fabric_api_version}"
 
-    modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
-    modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
-
-    modImplementation "com.squareup.okhttp3:okhttp:4.12.0"
-    // gson is already provided by Minecraft – only add if you truly need a newer API
+    // Shared libs
+    implementation "com.squareup.okhttp3:okhttp:4.12.0"
+    implementation "com.google.code.gson:gson:2.11.0"
 }
 
 java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
     withSourcesJar()
-    sourceCompatibility = JavaVersion.VERSION_21
-    targetCompatibility = JavaVersion.VERSION_21
 }
 
 tasks.withType(JavaCompile).configureEach {
     it.options.release = 21
+}
+
+tasks.processResources {
+    // THIS FIXES YOUR DUPLICATE icon.png ERROR
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 }
