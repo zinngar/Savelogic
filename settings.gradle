@@ -5,5 +5,4 @@ pluginManagement {
         mavenCentral()
     }
 }
-
-rootProject.name = "Savelogic"
+rootProject.name = "savelogic"
