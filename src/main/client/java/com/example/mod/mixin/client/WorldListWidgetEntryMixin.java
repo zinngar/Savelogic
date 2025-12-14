@@ -1,12 +1,12 @@
-package com.example.mod.mixin;
+package com.example.mod.mixin.client;
 
 import com.example.mod.CloudSaves;
 import com.example.mod.CloudStorageProvider;
 import com.example.mod.GitHubStorageProvider;
 import com.example.mod.GoogleDriveProvider;
 import com.example.mod.util.ZipUtil;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.screen.world.WorldListWidget;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.screens.world.WorldSelectionList;
 import net.minecraft.world.level.storage.LevelSummary;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
@@ -19,32 +19,32 @@ import java.io.File;
 import java.nio.file.Path;
 import java.util.concurrent.CompletableFuture;
 
-@Mixin(WorldListWidget.Entry.class)
+@Mixin(WorldSelectionList.Entry.class)
 public abstract class WorldListWidgetEntryMixin {
 
     @Shadow @Final private LevelSummary summary;
 
-    @Inject(method = "play", at = @At("HEAD"), cancellable = true)
-    private void onPlay(CallbackInfo ci) {
-        if (CloudSaves.isSavingOperation) {
+    @Inject(method = "joinWorld", at = @At("HEAD"), cancellable = true)
+    private void onJoinWorld(CallbackInfo ci) {
+        if (CloudSavesClient.isSavingOperation) {
             ci.cancel(); // Prevent the world from loading
-            CloudSaves.isSavingOperation = false; // Reset the flag
+            CloudSavesClient.isSavingOperation = false; // Reset the flag
 
             CloudSaves.LOGGER.info("Intercepted world selection for saving:");
-            CloudSaves.LOGGER.info("  Display Name: {}", summary.getDisplayName());
-            CloudSaves.LOGGER.info("  Folder Name: {}", summary.getName());
+            CloudSaves.LOGGER.info("  Display Name: {}", summary.getLevelName());
+            CloudSaves.LOGGER.info("  Folder Name: {}", summary.getLevelId());
 
-            MinecraftClient client = MinecraftClient.getInstance();
+            Minecraft client = Minecraft.getInstance();
             if (client == null) {
-                CloudSaves.LOGGER.error("MinecraftClient not available");
+                CloudSaves.LOGGER.error("Minecraft client not available");
                 return;
             }
 
             // Correct 1.21.1 API: resolve saves directory
-            Path savesDir = client.getLevelStorage().getSavesDirectory();
+            Path savesDir = client.gameDirectory.toPath().resolve("saves");
 
             // Full path to the selected world
-            Path worldDir = savesDir.resolve(summary.getName());
+            Path worldDir = savesDir.resolve(summary.getLevelId());
 
             File worldDirFile = worldDir.toFile();
             if (!worldDirFile.exists() || !worldDirFile.isDirectory()) {
@@ -74,7 +74,7 @@ public abstract class WorldListWidgetEntryMixin {
             });
 
             // Return to parent screen
-            client.setScreen(CloudSaves.parentScreen);
+            client.setScreen(CloudSavesClient.parentScreen);
         }
     }
 }

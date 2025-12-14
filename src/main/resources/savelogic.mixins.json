@@ -3,7 +3,7 @@
   "package": "com.example.mod.mixin",
   "compatibilityLevel": "JAVA_21",
   "client": [
-    "TitleScreenMixin",
-    "WorldListWidgetEntryMixin"
+    "client.TitleScreenMixin",
+    "client.WorldListWidgetEntryMixin"
   ]
 }
