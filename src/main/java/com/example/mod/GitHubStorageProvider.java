@@ -1,4 +1,4 @@
-package com.zinngar.savelogic;
+package com.example.mod;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
@@ -26,11 +26,12 @@ public class GitHubStorageProvider implements CloudStorageProvider {
     public CompletableFuture<Void> uploadSave(File zipFile) {
         return CompletableFuture.runAsync(() -> {
             try {
-                String repoUrl = CloudSaves.CONFIG.github.repositoryUrl;
-                String pat = CloudSaves.CONFIG.github.personalAccessToken;
+                String[] parts = parseRepoUrl(CloudSavesCommon.CONFIG.github.repositoryUrl);
+                String owner = parts[0];
+                String repo = parts[1];
+                String pat = CloudSavesCommon.CONFIG.github.personalAccessToken;
 
-                // e.g. https://github.com/user/repo -> api.github.com/repos/user/repo
-                String apiUrl = repoUrl.replace("github.com", "api.github.com/repos");
+                String apiUrl = "https://api.github.com/repos/" + owner + "/" + repo;
                 String uploadUrl = apiUrl + "/contents/" + zipFile.getName();
 
                 byte[] fileBytes = Files.readAllBytes(zipFile.toPath());
@@ -62,14 +63,14 @@ public class GitHubStorageProvider implements CloudStorageProvider {
 
                 try (Response putResponse = client.newCall(putRequest).execute()) {
                     if (!putResponse.isSuccessful()) {
-                        CloudSaves.LOGGER.error("Failed to upload to GitHub: " + putResponse.body().string());
+                        CloudSavesCommon.LOGGER.error("Failed to upload to GitHub: " + putResponse.body().string());
                     } else {
-                        CloudSaves.LOGGER.info("Successfully uploaded to GitHub!");
+                        CloudSavesCommon.LOGGER.info("Successfully uploaded to GitHub!");
                     }
                 }
 
             } catch (IOException e) {
-                CloudSaves.LOGGER.error("Error during GitHub upload", e);
+                CloudSavesCommon.LOGGER.error("Error during GitHub upload", e);
             }
         });
     }
@@ -78,9 +79,12 @@ public class GitHubStorageProvider implements CloudStorageProvider {
     public CompletableFuture<File> downloadSave(String saveName) {
         return CompletableFuture.supplyAsync(() -> {
             try {
-                String repoUrl = CloudSaves.CONFIG.github.repositoryUrl;
-                String pat = CloudSaves.CONFIG.github.personalAccessToken;
-                String apiUrl = repoUrl.replace("github.com", "api.github.com/repos");
+                String[] parts = parseRepoUrl(CloudSavesCommon.CONFIG.github.repositoryUrl);
+                String owner = parts[0];
+                String repo = parts[1];
+                String pat = CloudSavesCommon.CONFIG.github.personalAccessToken;
+
+                String apiUrl = "https://api.github.com/repos/" + owner + "/" + repo;
                 String downloadUrl = apiUrl + "/contents/" + saveName;
 
                 Request request = new Request.Builder()
@@ -100,11 +104,11 @@ public class GitHubStorageProvider implements CloudStorageProvider {
                         }
                         return downloadedFile;
                     } else {
-                        CloudSaves.LOGGER.error("Failed to download from GitHub: " + response.body().string());
+                        CloudSavesCommon.LOGGER.error("Failed to download from GitHub: " + response.body().string());
                     }
                 }
             } catch (IOException e) {
-                CloudSaves.LOGGER.error("Error during GitHub download", e);
+                CloudSavesCommon.LOGGER.error("Error during GitHub download", e);
             }
             return null;
         });
@@ -114,9 +118,12 @@ public class GitHubStorageProvider implements CloudStorageProvider {
     public CompletableFuture<List<String>> listSaves() {
         return CompletableFuture.supplyAsync(() -> {
             try {
-                String repoUrl = CloudSaves.CONFIG.github.repositoryUrl;
-                String pat = CloudSaves.CONFIG.github.personalAccessToken;
-                String apiUrl = repoUrl.replace("github.com", "api.github.com/repos");
+                String[] parts = parseRepoUrl(CloudSavesCommon.CONFIG.github.repositoryUrl);
+                String owner = parts[0];
+                String repo = parts[1];
+                String pat = CloudSavesCommon.CONFIG.github.personalAccessToken;
+
+                String apiUrl = "https://api.github.com/repos/" + owner + "/" + repo;
                 String listUrl = apiUrl + "/contents/";
 
                 Request request = new Request.Builder()
@@ -133,11 +140,11 @@ public class GitHubStorageProvider implements CloudStorageProvider {
                                 .filter(name -> name.endsWith(".zip"))
                                 .collect(Collectors.toList());
                     } else {
-                        CloudSaves.LOGGER.error("Failed to list saves from GitHub: " + response.body().string());
+                        CloudSavesCommon.LOGGER.error("Failed to list saves from GitHub: " + response.body().string());
                     }
                 }
             } catch (IOException e) {
-                CloudSaves.LOGGER.error("Error during GitHub list saves", e);
+                CloudSavesCommon.LOGGER.error("Error during GitHub list saves", e);
             }
             return new ArrayList<>();
         });
@@ -146,5 +153,14 @@ public class GitHubStorageProvider implements CloudStorageProvider {
     @Override
     public String getProviderName() {
         return "GitHub";
+    }
+
+    private String[] parseRepoUrl(String url) {
+        // e.g. https://github.com/user/repo -> user, repo
+        String[] parts = url.replace("https://github.com/", "").split("/");
+        if (parts.length < 2) {
+            return new String[]{"", ""};
+        }
+        return new String[]{parts[0], parts[1]};
     }
 }

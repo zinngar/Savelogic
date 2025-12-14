@@ -1,11 +1,11 @@
-package com.zinngar.savelogic.client.screen;
+package com.example.mod.client.screen;
 
-import com.zinngar.savelogic.CloudSaveOperation;
-import com.zinngar.savelogic.CloudSaves;
-import com.zinngar.savelogic.CloudStorageProvider;
-import com.zinngar.savelogic.GitHubStorageProvider;
-import com.zinngar.savelogic.GoogleDriveProvider;
-import com.zinngar.savelogic.util.ZipUtil;
+import com.example.mod.CloudSaveOperation;
+import com.example.mod.CloudSavesCommon;
+import com.example.mod.CloudStorageProvider;
+import com.example.mod.GitHubStorageProvider;
+import com.example.mod.GoogleDriveProvider;
+import com.example.mod.util.ZipUtil;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
@@ -26,7 +26,7 @@ public class CloudSaveSelectionScreen extends Screen {
         super(Text.literal("Select Cloud Save to Load"));
         this.operation = operation;
 
-        if (CloudSaves.CONFIG.provider.equalsIgnoreCase("github")) {
+        if (CloudSavesCommon.CONFIG.provider.equalsIgnoreCase("github")) {
             this.provider = new GitHubStorageProvider();
         } else {
             this.provider = new GoogleDriveProvider();
@@ -70,9 +70,9 @@ public class CloudSaveSelectionScreen extends Screen {
                 try {
                     File savesDir = MinecraftClient.getInstance().getLevelStorage().getSavesDirectory().toFile();
                     ZipUtil.unzip(file, savesDir);
-                    CloudSaves.LOGGER.info("Unzipped save: " + saveName);
+                    CloudSavesCommon.LOGGER.info("Unzipped save: " + saveName);
                 } catch (Exception e) {
-                    CloudSaves.LOGGER.error("Failed to unzip save", e);
+                    CloudSavesCommon.LOGGER.error("Failed to unzip save", e);
                 }
             }
         });

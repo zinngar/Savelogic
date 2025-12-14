@@ -1,4 +1,4 @@
-package com.zinngar.savelogic;
+package com.example.mod;
 
 public enum OperationType {
     SAVE,

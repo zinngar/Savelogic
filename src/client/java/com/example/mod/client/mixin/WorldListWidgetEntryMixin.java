@@ -1,10 +1,11 @@
-package com.zinngar.savelogic.mixin;
+package com.example.mod.client.mixin;
 
-import com.zinngar.savelogic.CloudSaves;
-import com.zinngar.savelogic.CloudStorageProvider;
-import com.zinngar.savelogic.GoogleDriveProvider;
-import com.zinngar.savelogic.GitHubStorageProvider;
-import com.zinngar.savelogic.util.ZipUtil;
+import com.example.mod.client.CloudSavesCommonClient;
+import com.example.mod.CloudSavesCommon;
+import com.example.mod.CloudStorageProvider;
+import com.example.mod.GoogleDriveProvider;
+import com.example.mod.GitHubStorageProvider;
+import com.example.mod.util.ZipUtil;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.screen.world.WorldListWidget;
 import net.minecraft.world.level.storage.LevelSummary;
@@ -26,37 +27,32 @@ public abstract class WorldListWidgetEntryMixin {
 
     @Inject(method = "play", at = @At("HEAD"), cancellable = true)
     private void onPlay(CallbackInfo ci) {
-        if (CloudSaves.isSavingOperation) {
+        if (CloudSavesCommonClient.isSavingOperation) {
             ci.cancel(); // Prevent the world from loading
-            CloudSaves.isSavingOperation = false; // Reset the flag
+            CloudSavesCommonClient.isSavingOperation = false; // Reset the flag
 
-            CloudSaves.LOGGER.info("Intercepted world selection for saving:");
-            CloudSaves.LOGGER.info("  Display Name: {}", summary.getDisplayName());
-            CloudSaves.LOGGER.info("  Folder Name: {}", summary.getName());
+            CloudSavesCommon.LOGGER.info("Intercepted world selection for saving:");
+            CloudSavesCommon.LOGGER.info("  Display Name: {}", summary.getDisplayName());
+            CloudSavesCommon.LOGGER.info("  Folder Name: {}", summary.getName());
 
             MinecraftClient client = MinecraftClient.getInstance();
             if (client == null) {
-                CloudSaves.LOGGER.error("MinecraftClient not available");
+                CloudSavesCommon.LOGGER.error("MinecraftClient not available");
                 return;
             }
 
-            // Correct 1.21.1 API: resolve saves directory
             Path savesDir = client.getLevelStorage().getSavesDirectory();
-
-            // Full path to the selected world
             Path worldDir = savesDir.resolve(summary.getName());
-
             File worldDirFile = worldDir.toFile();
             if (!worldDirFile.exists() || !worldDirFile.isDirectory()) {
-                CloudSaves.LOGGER.error("World directory does not exist: {}", worldDir);
+                CloudSavesCommon.LOGGER.error("World directory does not exist: {}", worldDir);
                 return;
             }
 
-            CloudSaves.LOGGER.info("Resolved world directory: {}", worldDir.toAbsolutePath());
+            CloudSavesCommon.LOGGER.info("Resolved world directory: {}", worldDir.toAbsolutePath());
 
-            // Choose storage provider
             CloudStorageProvider provider;
-            if ("github".equalsIgnoreCase(CloudSaves.CONFIG.provider)) {
+            if ("github".equalsIgnoreCase(CloudSavesCommon.CONFIG.provider)) {
                 provider = new GitHubStorageProvider();
             } else {
                 provider = new GoogleDriveProvider();
@@ -64,17 +60,16 @@ public abstract class WorldListWidgetEntryMixin {
 
             CompletableFuture.runAsync(() -> {
                 try {
-                    CloudSaves.LOGGER.info("Zipping world...");
+                    CloudSavesCommon.LOGGER.info("Zipping world...");
                     Path zip = ZipUtil.zipWorld(worldDir);
-                    CloudSaves.LOGGER.info("World zipped to: {}", zip.toAbsolutePath());
+                    CloudSavesCommon.LOGGER.info("World zipped to: {}", zip.toAbsolutePath());
                     provider.uploadSave(zip.toFile());
                 } catch (Exception e) {
-                    CloudSaves.LOGGER.error("Failed to zip and upload world", e);
+                    CloudSavesCommon.LOGGER.error("Failed to zip and upload world", e);
                 }
             });
 
-            // Return to parent screen
-            client.setScreen(CloudSaves.parentScreen);
+            client.setScreen(CloudSavesCommonClient.parentScreen);
         }
     }
 }

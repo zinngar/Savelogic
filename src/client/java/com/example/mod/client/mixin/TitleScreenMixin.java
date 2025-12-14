@@ -1,10 +1,11 @@
-package com.zinngar.savelogic.mixin;
+package com.example.mod.client.mixin;
 
-import com.zinngar.savelogic.CloudSaveOperation;
-import com.zinngar.savelogic.CloudSaves;
-import com.zinngar.savelogic.GoogleDriveProvider;
-import com.zinngar.savelogic.OperationType;
-import com.zinngar.savelogic.client.screen.CloudSaveSelectionScreen;
+import com.example.mod.client.CloudSavesCommonClient;
+import com.example.mod.client.CloudSaveOperation;
+import com.example.mod.GoogleDriveProvider;
+import com.example.mod.OperationType;
+import com.example.mod.client.screen.CloudSaveSelectionScreen;
+import com.example.mod.CloudSavesCommon;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.screen.TitleScreen;
 import net.minecraft.client.gui.screen.world.SelectWorldScreen;
@@ -25,8 +26,7 @@ public class TitleScreenMixin extends Screen {
     private void init(CallbackInfo ci) {
         int l = this.height / 4 + 48;
         this.addDrawableChild(ButtonWidget.builder(Text.translatable("menu.cloud_saves.save"), button -> {
-            CloudSaves.isSavingOperation = true;
-            CloudSaves.parentScreen = this;
+            CloudSavesCommonClient.startCloudSave(this, OperationType.SAVE);
             this.client.setScreen(new SelectWorldScreen(this));
         }).dimensions(this.width / 2 - 100, l + 24, 200, 20).build());
 
@@ -34,8 +34,8 @@ public class TitleScreenMixin extends Screen {
             this.client.setScreen(new CloudSaveSelectionScreen(new CloudSaveOperation(OperationType.LOAD, this)));
         }).dimensions(this.width / 2 - 100, l + 48, 200, 20).build());
 
-        if ("google".equalsIgnoreCase(CloudSaves.CONFIG.provider) &&
-            (CloudSaves.CONFIG.google.refreshToken == null || CloudSaves.CONFIG.google.refreshToken.isEmpty())) {
+        if ("google".equalsIgnoreCase(CloudSavesCommon.CONFIG.provider) &&
+            (CloudSavesCommon.CONFIG.google.refreshToken == null || CloudSavesCommon.CONFIG.google.refreshToken.isEmpty())) {
 
             this.addDrawableChild(ButtonWidget.builder(Text.literal("Login with Google Drive"), button -> {
                 new GoogleDriveProvider().initiateAuthorization();

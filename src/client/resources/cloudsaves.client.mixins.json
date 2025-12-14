@@ -1,9 +1,12 @@
 {
   "required": true,
-  "package": "com.zinngar.savelogic.mixin",
+  "package": "com.example.mod.client.mixin",
   "compatibilityLevel": "JAVA_21",
   "client": [
     "TitleScreenMixin",
     "WorldListWidgetEntryMixin"
-  ]
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
 }
