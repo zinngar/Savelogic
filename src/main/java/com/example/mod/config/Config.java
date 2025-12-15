@@ -2,7 +2,7 @@ package com.example.mod.config;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import com.example.mod.CloudSavesCommon;
+import com.example.mod.CloudSaves;
 import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
@@ -31,7 +31,7 @@ public class Config {
             try (FileReader reader = new FileReader(configFile)) {
                 return gson.fromJson(reader, Config.class);
             } catch (IOException e) {
-                CloudSavesCommon.LOGGER.error("Failed to load config", e);
+                CloudSaves.LOGGER.error("Failed to load config", e);
             }
         }
         return new Config();
@@ -44,7 +44,7 @@ public class Config {
         try (FileWriter writer = new FileWriter(configFile)) {
             gson.toJson(this, writer);
         } catch (IOException e) {
-            CloudSavesCommon.LOGGER.error("Failed to save config", e);
+            CloudSaves.LOGGER.error("Failed to save config", e);
         }
     }
 }

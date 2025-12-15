@@ -6,7 +6,7 @@
 
   "entrypoints": {
     "main": [
-        "com.example.mod.CloudSavesCommon"
+        "com.example.mod.CloudSaves"
     ],
     "client": [
       "com.example.mod.client.CloudSavesClient"

@@ -30,7 +30,7 @@ public class GoogleDriveProvider implements CloudStorageProvider {
 
     public void initiateAuthorization() {
         String authUrl = "https://accounts.google.com/o/oauth2/v2/auth?" +
-                "client_id=" + CloudSavesCommon.CONFIG.google.clientId +
+                "client_id=" + CloudSaves.CONFIG.google.clientId +
                 "&redirect_uri=" + REDIRECT_URI +
                 "&response_type=code" +
                 "&scope=https://www.googleapis.com/auth/drive.file" +
@@ -40,11 +40,11 @@ public class GoogleDriveProvider implements CloudStorageProvider {
             if (Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(Desktop.Action.BROWSE)) {
                 Desktop.getDesktop().browse(new URI(authUrl));
             } else {
-                CloudSavesCommon.LOGGER.error("Cannot open browser to initiate Google Drive authorization.");
+                CloudSaves.LOGGER.error("Cannot open browser to initiate Google Drive authorization.");
                 return;
             }
         } catch (IOException | URISyntaxException e) {
-            CloudSavesCommon.LOGGER.error("Failed to open browser for Google Drive authorization", e);
+            CloudSaves.LOGGER.error("Failed to open browser for Google Drive authorization", e);
             return;
         }
 
@@ -80,14 +80,14 @@ public class GoogleDriveProvider implements CloudStorageProvider {
             server.setExecutor(null);
             server.start();
         } catch (IOException e) {
-            CloudSavesCommon.LOGGER.error("Failed to start local server for Google Drive authorization", e);
+            CloudSaves.LOGGER.error("Failed to start local server for Google Drive authorization", e);
         }
     }
 
     private void exchangeCodeForTokens(String code) {
         RequestBody body = new FormBody.Builder()
-                .add("client_id", CloudSavesCommon.CONFIG.google.clientId)
-                .add("client_secret", CloudSavesCommon.CONFIG.google.clientSecret)
+                .add("client_id", CloudSaves.CONFIG.google.clientId)
+                .add("client_secret", CloudSaves.CONFIG.google.clientSecret)
                 .add("code", code)
                 .add("grant_type", "authorization_code")
                 .add("redirect_uri", REDIRECT_URI)
@@ -105,18 +105,18 @@ public class GoogleDriveProvider implements CloudStorageProvider {
                 Map<String, String> tokenMap = gson.fromJson(json, type);
 
                 if (tokenMap.containsKey("refresh_token")) {
-                    CloudSavesCommon.CONFIG.google.refreshToken = tokenMap.get("refresh_token");
-                    CloudSavesCommon.CONFIG.save();
-                    CloudSavesCommon.LOGGER.info("Successfully received and saved Google Drive refresh token.");
+                    CloudSaves.CONFIG.google.refreshToken = tokenMap.get("refresh_token");
+                    CloudSaves.CONFIG.save();
+                    CloudSaves.LOGGER.info("Successfully received and saved Google Drive refresh token.");
                 } else {
-                    CloudSavesCommon.LOGGER.warn("Did not receive a refresh token. You may need to re-authenticate later.");
+                    CloudSaves.LOGGER.warn("Did not receive a refresh token. You may need to re-authenticate later.");
                 }
 
             } else {
-                CloudSavesCommon.LOGGER.error("Failed to exchange authorization code for tokens: " + response.body().string());
+                CloudSaves.LOGGER.error("Failed to exchange authorization code for tokens: " + response.body().string());
             }
         } catch (IOException e) {
-            CloudSavesCommon.LOGGER.error("Error exchanging authorization code for tokens", e);
+            CloudSaves.LOGGER.error("Error exchanging authorization code for tokens", e);
         }
     }
 
@@ -161,14 +161,14 @@ public class GoogleDriveProvider implements CloudStorageProvider {
 
                 try (Response response = client.newCall(request).execute()) {
                     if (!response.isSuccessful()) {
-                        CloudSavesCommon.LOGGER.error("Failed to upload to Google Drive: " + response.body().string());
+                        CloudSaves.LOGGER.error("Failed to upload to Google Drive: " + response.body().string());
                     } else {
-                        CloudSavesCommon.LOGGER.info("Successfully uploaded to Google Drive!");
+                        CloudSaves.LOGGER.info("Successfully uploaded to Google Drive!");
                     }
                 }
 
             } catch (IOException e) {
-                CloudSavesCommon.LOGGER.error("Error during Google Drive upload", e);
+                CloudSaves.LOGGER.error("Error during Google Drive upload", e);
             }
         });
     }
@@ -193,7 +193,7 @@ public class GoogleDriveProvider implements CloudStorageProvider {
                     return files.get(0).get("id");
                 }
             } else {
-                 CloudSavesCommon.LOGGER.error("Failed to find file ID: " + response.body().string());
+                 CloudSaves.LOGGER.error("Failed to find file ID: " + response.body().string());
             }
         }
         return null;
@@ -206,7 +206,7 @@ public class GoogleDriveProvider implements CloudStorageProvider {
             try {
                 String fileId = findFileId(accessToken, saveName + ".zip");
                 if (fileId == null) {
-                    CloudSavesCommon.LOGGER.error("File not found on Google Drive: " + saveName);
+                    CloudSaves.LOGGER.error("File not found on Google Drive: " + saveName);
                     return null;
                 }
 
@@ -223,11 +223,11 @@ public class GoogleDriveProvider implements CloudStorageProvider {
                         }
                         return downloadedFile;
                     } else {
-                        CloudSavesCommon.LOGGER.error("Failed to download from Google Drive: " + response.body().string());
+                        CloudSaves.LOGGER.error("Failed to download from Google Drive: " + response.body().string());
                     }
                 }
             } catch (IOException e) {
-                CloudSavesCommon.LOGGER.error("Error during Google Drive download", e);
+                CloudSaves.LOGGER.error("Error during Google Drive download", e);
             }
             return null;
         });
@@ -260,11 +260,11 @@ public class GoogleDriveProvider implements CloudStorageProvider {
                                     .collect(Collectors.toList());
                         }
                     } else {
-                        CloudSavesCommon.LOGGER.error("Failed to list saves from Google Drive: " + response.body().string());
+                        CloudSaves.LOGGER.error("Failed to list saves from Google Drive: " + response.body().string());
                     }
                 }
             } catch (IOException e) {
-                CloudSavesCommon.LOGGER.error("Error during Google Drive list saves", e);
+                CloudSaves.LOGGER.error("Error during Google Drive list saves", e);
             }
             return new ArrayList<>();
         });
@@ -277,15 +277,15 @@ public class GoogleDriveProvider implements CloudStorageProvider {
 
     private CompletableFuture<String> getAccessToken() {
         return CompletableFuture.supplyAsync(() -> {
-            if (CloudSavesCommon.CONFIG.google.refreshToken == null || CloudSavesCommon.CONFIG.google.refreshToken.isEmpty()) {
-                CloudSavesCommon.LOGGER.warn("Not authenticated with Google Drive. Please login first.");
+            if (CloudSaves.CONFIG.google.refreshToken == null || CloudSaves.CONFIG.google.refreshToken.isEmpty()) {
+                CloudSaves.LOGGER.warn("Not authenticated with Google Drive. Please login first.");
                 return null;
             }
 
             RequestBody body = new FormBody.Builder()
-                    .add("client_id", CloudSavesCommon.CONFIG.google.clientId)
-                    .add("client_secret", CloudSavesCommon.CONFIG.google.clientSecret)
-                    .add("refresh_token", CloudSavesCommon.CONFIG.google.refreshToken)
+                    .add("client_id", CloudSaves.CONFIG.google.clientId)
+                    .add("client_secret", CloudSaves.CONFIG.google.clientSecret)
+                    .add("refresh_token", CloudSaves.CONFIG.google.refreshToken)
                     .add("grant_type", "refresh_token")
                     .build();
 
@@ -301,14 +301,14 @@ public class GoogleDriveProvider implements CloudStorageProvider {
                     Map<String, String> tokenMap = gson.fromJson(json, type);
                     return tokenMap.get("access_token");
                 } else {
-                    CloudSavesCommon.LOGGER.error("Failed to refresh access token: " + response.body().string());
+                    CloudSaves.LOGGER.error("Failed to refresh access token: " + response.body().string());
                     // Potentially invalid refresh token, clear it to force re-authentication
-                    CloudSavesCommon.CONFIG.google.refreshToken = "";
-                    CloudSavesCommon.CONFIG.save();
+                    CloudSaves.CONFIG.google.refreshToken = "";
+                    CloudSaves.CONFIG.save();
                     return null;
                 }
             } catch (IOException e) {
-                CloudSavesCommon.LOGGER.error("Error refreshing access token", e);
+                CloudSaves.LOGGER.error("Error refreshing access token", e);
                 return null;
             }
         });
