@@ -1,6 +1,6 @@
 {
   "required": true,
-  "package": "com.example.mod.client.mixin",
+  "package": "com.example.mod.mixin",
   "compatibilityLevel": "JAVA_21",
   "client": [
     "TitleScreenMixin",

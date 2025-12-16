@@ -1,4 +1,5 @@
 {
+  "schemaVersion": 1,
   "id": "savelogic",
   "version": "${version}",
   "name": "SaveLogic",
@@ -6,7 +7,7 @@
 
   "entrypoints": {
     "main": [
-        "com.example.mod.CloudSaves"
+      "com.example.mod.CloudSaves"
     ],
     "client": [
       "com.example.mod.client.CloudSavesClient"
@@ -14,13 +15,12 @@
   },
 
   "mixins": [
-    "cloudsaves.mixins.json",
-    "cloudsaves.client.mixins.json"
+    "savelogic.mixins.json"
   ],
 
   "depends": {
-    "fabricloader": ">=0.17.0",
-    "fabric": "*",
-    "minecraft": "1.21.10"
+    "fabricloader": ">=0.15.0",
+    "minecraft": "1.21.x",
+    "fabric-api": "*"
   }
 }

@@ -1,4 +1,4 @@
-package com.example.mod.client.mixin;
+package com.example.mod.mixin;
 
 import com.example.mod.client.CloudSavesClient;
 import com.example.mod.CloudSaves;
@@ -6,6 +6,7 @@ import com.example.mod.CloudStorageProvider;
 import com.example.mod.GoogleDriveProvider;
 import com.example.mod.GitHubStorageProvider;
 import com.example.mod.util.ZipUtil;
+
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.screen.world.WorldListWidget;
 import net.minecraft.world.level.storage.LevelSummary;
@@ -28,8 +29,8 @@ public abstract class WorldListWidgetEntryMixin {
     @Inject(method = "play", at = @At("HEAD"), cancellable = true)
     private void onPlay(CallbackInfo ci) {
         if (CloudSavesClient.isSavingOperation) {
-            ci.cancel(); // Prevent the world from loading
-            CloudSavesClient.isSavingOperation = false; // Reset the flag
+            ci.cancel();
+            CloudSavesClient.isSavingOperation = false;
 
             CloudSaves.LOGGER.info("Intercepted world selection for saving:");
             CloudSaves.LOGGER.info("  Display Name: {}", summary.getDisplayName());

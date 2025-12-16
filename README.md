@@ -53,6 +53,12 @@ Before using the mod, you need to configure it by editing the `cloudsaves.json` 
     *   Copy the generated PAT into the `personalAccessToken` field in the `cloudsaves.json` file.
     *   Set the `repositoryUrl` to the URL of the private GitHub repository where you want to store your worlds (e.g., `"https://github.com/YourUsername/MyMinecraftSaves"`).
 
+## Support
+
+If you find this mod useful, please consider supporting the developer:
+
+[<img src="https://img.shields.io/badge/Donate-PayPal-blue.svg?logo=paypal" alt="Donate via PayPal">](https://www.paypal.com/donate/?hosted_button_id=YOUR_PAYPAL_ID)
+
 ## ⚠️ Security Warning ⚠️
 
 The `cloudsaves.json` configuration file will store sensitive credentials, including your GitHub Personal Access Token and your Google Drive refresh token.

@@ -41,7 +41,6 @@ public class GitHubStorageProvider implements CloudStorageProvider {
                 payload.put("message", "Uploaded world save: " + zipFile.getName());
                 payload.put("content", encodedFile);
 
-                // Check if the file exists to get its SHA, required for updates
                 Request getRequest = new Request.Builder()
                         .url(uploadUrl)
                         .header("Authorization", "token " + pat)
@@ -156,7 +155,6 @@ public class GitHubStorageProvider implements CloudStorageProvider {
     }
 
     private String[] parseRepoUrl(String url) {
-        // e.g. https://github.com/user/repo -> user, repo
         String[] parts = url.replace("https://github.com/", "").split("/");
         if (parts.length < 2) {
             return new String[]{"", ""};

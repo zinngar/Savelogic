@@ -74,7 +74,6 @@ public class GoogleDriveProvider implements CloudStorageProvider {
                 os.write(responseText.getBytes(StandardCharsets.UTF_8));
                 os.close();
 
-                // Stop the server in a separate thread to allow the response to be sent
                 new Thread(() -> server.stop(0)).start();
             });
             server.setExecutor(null);
@@ -302,7 +301,6 @@ public class GoogleDriveProvider implements CloudStorageProvider {
                     return tokenMap.get("access_token");
                 } else {
                     CloudSaves.LOGGER.error("Failed to refresh access token: " + response.body().string());
-                    // Potentially invalid refresh token, clear it to force re-authentication
                     CloudSaves.CONFIG.google.refreshToken = "";
                     CloudSaves.CONFIG.save();
                     return null;

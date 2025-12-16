@@ -6,7 +6,6 @@ import com.example.mod.CloudStorageProvider;
 import com.example.mod.GitHubStorageProvider;
 import com.example.mod.GoogleDriveProvider;
 import com.example.mod.util.ZipUtil;
-
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
