@@ -57,7 +57,7 @@ Before using the mod, you need to configure it by editing the `cloudsaves.json` 
 
 If you find this mod useful, please consider supporting the developer:
 
-[<img src="https://img.shields.io/badge/Donate-PayPal-blue.svg?logo=paypal" alt="Donate via PayPal">](https://www.paypal.com/donate/?hosted_button_id=YOUR_PAYPAL_ID)
+[<img src="https://img.shields.io/badge/Donate-PayPal-blue.svg?logo=paypal" alt="Donate via PayPal">](https://www.paypal.com/donate/?business=RQFEAWX7E39CG&no_recurring=0&item_name=Support+Savelogic+Development+&currency_code=AUD)
 
 ## ⚠️ Security Warning ⚠️
 
