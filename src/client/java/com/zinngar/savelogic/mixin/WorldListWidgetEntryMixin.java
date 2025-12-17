@@ -21,10 +21,10 @@ import java.io.File;
 import java.nio.file.Path;
 import java.util.concurrent.CompletableFuture;
 
-@Mixin(WorldListWidget.Entry.class)
+@Mixin(WorldListWidget.WorldEntry.class)
 public abstract class WorldListWidgetEntryMixin {
 
-    @Shadow @Final private LevelSummary summary;
+    @Shadow @Final private LevelSummary level;
 
     @Inject(method = "play", at = @At("HEAD"), cancellable = true)
     private void onPlay(CallbackInfo ci) {
@@ -33,8 +33,8 @@ public abstract class WorldListWidgetEntryMixin {
             SaveLogicClient.isSavingOperation = false;
 
             SaveLogic.LOGGER.info("Intercepted world selection for saving:");
-            SaveLogic.LOGGER.info("  Display Name: {}", summary.getDisplayName());
-            SaveLogic.LOGGER.info("  Folder Name: {}", summary.getName());
+            SaveLogic.LOGGER.info("  Display Name: {}", level.getDisplayName());
+            SaveLogic.LOGGER.info("  Folder Name: {}", level.getName());
 
             MinecraftClient client = MinecraftClient.getInstance();
             if (client == null) {
@@ -43,7 +43,7 @@ public abstract class WorldListWidgetEntryMixin {
             }
 
             Path savesDir = client.getLevelStorage().getSavesDirectory();
-            Path worldDir = savesDir.resolve(summary.getName());
+            Path worldDir = savesDir.resolve(level.getName());
             File worldDirFile = worldDir.toFile();
             if (!worldDirFile.exists() || !worldDirFile.isDirectory()) {
                 SaveLogic.LOGGER.error("World directory does not exist: {}", worldDir);
