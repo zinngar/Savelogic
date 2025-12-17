@@ -1,11 +1,11 @@
-package com.example.mod.mixin;
+package com.zinngar.savelogic.mixin;
 
-import com.example.mod.client.CloudSavesClient;
-import com.example.mod.CloudSaves;
-import com.example.mod.CloudStorageProvider;
-import com.example.mod.GoogleDriveProvider;
-import com.example.mod.GitHubStorageProvider;
-import com.example.mod.util.ZipUtil;
+import com.zinngar.savelogic.client.SaveLogicClient;
+import com.zinngar.savelogic.SaveLogic;
+import com.zinngar.savelogic.CloudStorageProvider;
+import com.zinngar.savelogic.GoogleDriveProvider;
+import com.zinngar.savelogic.GitHubStorageProvider;
+import com.zinngar.savelogic.util.ZipUtil;
 
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.screen.world.WorldListWidget;
@@ -28,17 +28,17 @@ public abstract class WorldListWidgetEntryMixin {
 
     @Inject(method = "play", at = @At("HEAD"), cancellable = true)
     private void onPlay(CallbackInfo ci) {
-        if (CloudSavesClient.isSavingOperation) {
+        if (SaveLogicClient.isSavingOperation) {
             ci.cancel();
-            CloudSavesClient.isSavingOperation = false;
+            SaveLogicClient.isSavingOperation = false;
 
-            CloudSaves.LOGGER.info("Intercepted world selection for saving:");
-            CloudSaves.LOGGER.info("  Display Name: {}", summary.getDisplayName());
-            CloudSaves.LOGGER.info("  Folder Name: {}", summary.getName());
+            SaveLogic.LOGGER.info("Intercepted world selection for saving:");
+            SaveLogic.LOGGER.info("  Display Name: {}", summary.getDisplayName());
+            SaveLogic.LOGGER.info("  Folder Name: {}", summary.getName());
 
             MinecraftClient client = MinecraftClient.getInstance();
             if (client == null) {
-                CloudSaves.LOGGER.error("MinecraftClient not available");
+                SaveLogic.LOGGER.error("MinecraftClient not available");
                 return;
             }
 
@@ -46,14 +46,14 @@ public abstract class WorldListWidgetEntryMixin {
             Path worldDir = savesDir.resolve(summary.getName());
             File worldDirFile = worldDir.toFile();
             if (!worldDirFile.exists() || !worldDirFile.isDirectory()) {
-                CloudSaves.LOGGER.error("World directory does not exist: {}", worldDir);
+                SaveLogic.LOGGER.error("World directory does not exist: {}", worldDir);
                 return;
             }
 
-            CloudSaves.LOGGER.info("Resolved world directory: {}", worldDir.toAbsolutePath());
+            SaveLogic.LOGGER.info("Resolved world directory: {}", worldDir.toAbsolutePath());
 
             CloudStorageProvider provider;
-            if ("github".equalsIgnoreCase(CloudSaves.CONFIG.provider)) {
+            if ("github".equalsIgnoreCase(SaveLogic.CONFIG.provider)) {
                 provider = new GitHubStorageProvider();
             } else {
                 provider = new GoogleDriveProvider();
@@ -61,16 +61,16 @@ public abstract class WorldListWidgetEntryMixin {
 
             CompletableFuture.runAsync(() -> {
                 try {
-                    CloudSaves.LOGGER.info("Zipping world...");
+                    SaveLogic.LOGGER.info("Zipping world...");
                     Path zip = ZipUtil.zipWorld(worldDir);
-                    CloudSaves.LOGGER.info("World zipped to: {}", zip.toAbsolutePath());
+                    SaveLogic.LOGGER.info("World zipped to: {}", zip.toAbsolutePath());
                     provider.uploadSave(zip.toFile());
                 } catch (Exception e) {
-                    CloudSaves.LOGGER.error("Failed to zip and upload world", e);
+                    SaveLogic.LOGGER.error("Failed to zip and upload world", e);
                 }
             });
 
-            client.setScreen(CloudSavesClient.parentScreen);
+            client.setScreen(SaveLogicClient.parentScreen);
         }
     }
 }

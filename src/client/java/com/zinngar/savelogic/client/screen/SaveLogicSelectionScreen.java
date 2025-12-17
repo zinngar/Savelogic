@@ -1,11 +1,11 @@
-package com.example.mod.client.screen;
+package com.zinngar.savelogic.client.screen;
 
-import com.example.mod.client.CloudSaveOperation;
-import com.example.mod.CloudSaves;
-import com.example.mod.CloudStorageProvider;
-import com.example.mod.GitHubStorageProvider;
-import com.example.mod.GoogleDriveProvider;
-import com.example.mod.util.ZipUtil;
+import com.zinngar.savelogic.client.CloudSaveOperation;
+import com.zinngar.savelogic.SaveLogic;
+import com.zinngar.savelogic.CloudStorageProvider;
+import com.zinngar.savelogic.GitHubStorageProvider;
+import com.zinngar.savelogic.GoogleDriveProvider;
+import com.zinngar.savelogic.util.ZipUtil;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
@@ -16,17 +16,17 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
-public class CloudSaveSelectionScreen extends Screen {
+public class SaveLogicSelectionScreen extends Screen {
 
     private final CloudSaveOperation operation;
     private List<String> saves = new ArrayList<>();
     private CloudStorageProvider provider;
 
-    public CloudSaveSelectionScreen(CloudSaveOperation operation) {
+    public SaveLogicSelectionScreen(CloudSaveOperation operation) {
         super(Text.literal("Select Cloud Save to Load"));
         this.operation = operation;
 
-        if (CloudSaves.CONFIG.provider.equalsIgnoreCase("github")) {
+        if (SaveLogic.CONFIG.provider.equalsIgnoreCase("github")) {
             this.provider = new GitHubStorageProvider();
         } else {
             this.provider = new GoogleDriveProvider();
@@ -70,9 +70,9 @@ public class CloudSaveSelectionScreen extends Screen {
                 try {
                     File savesDir = MinecraftClient.getInstance().getLevelStorage().getSavesDirectory().toFile();
                     ZipUtil.unzip(file, savesDir);
-                    CloudSaves.LOGGER.info("Unzipped save: " + saveName);
+                    SaveLogic.LOGGER.info("Unzipped save: " + saveName);
                 } catch (Exception e) {
-                    CloudSaves.LOGGER.error("Failed to unzip save", e);
+                    SaveLogic.LOGGER.error("Failed to unzip save", e);
                 }
             }
         });

@@ -1,6 +1,6 @@
-package com.example.mod.client;
+package com.zinngar.savelogic.client;
 
-import com.example.mod.OperationType;
+import com.zinngar.savelogic.OperationType;
 import net.minecraft.client.gui.screen.Screen;
 
 public class CloudSaveOperation {

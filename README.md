@@ -1,6 +1,6 @@
 # Cloud Saves Fabric Mod
 
-This is a Fabric mod for Minecraft 1.21.10 that allows you to save and load your single-player worlds to and from the cloud. It currently supports Google Drive and GitHub as cloud storage providers.
+This is a Fabric mod for Minecraft 1.21.1 that allows you to save and load your single-player worlds to and from the cloud. It currently supports Google Drive and GitHub as cloud storage providers.
 
 ## Features
 
@@ -19,7 +19,7 @@ This is a Fabric mod for Minecraft 1.21.10 that allows you to save and load your
 
 ## Configuration
 
-Before using the mod, you need to configure it by editing the `cloudsaves.json` file located in your Minecraft `config` directory.
+Before using the mod, you need to configure it by editing the `savelogic.json` file located in your Minecraft `config` directory.
 
 ### General Configuration
 
@@ -34,7 +34,7 @@ Before using the mod, you need to configure it by editing the `cloudsaves.json` 
     *   Enable the **Google Drive API** for your project.
     *   From the "Credentials" page, create an **OAuth client ID** for a **Desktop app**.
 3.  **Fill in `clientId` and `clientSecret`:**
-    *   Copy the "Client ID" and "Client Secret" from the Google API Console into the respective fields in the `cloudsaves.json` file.
+    *   Copy the "Client ID" and "Client Secret" from the Google API Console into the respective fields in the `savelogic.json` file.
 4.  **First-time Login:**
     *   When you first start Minecraft with the mod configured for Google Drive, a "Login with Google Drive" button will appear on the main menu.
     *   Clicking this will open a Google authorization page in your web browser.
@@ -50,7 +50,7 @@ Before using the mod, you need to configure it by editing the `cloudsaves.json` 
     *   Generate a new "Personal access token (classic)".
     *   Give it a descriptive name and grant it the `repo` scope.
 3.  **Fill in `personalAccessToken` and `repositoryUrl`:**
-    *   Copy the generated PAT into the `personalAccessToken` field in the `cloudsaves.json` file.
+    *   Copy the generated PAT into the `personalAccessToken` field in the `savelogic.json` file.
     *   Set the `repositoryUrl` to the URL of the private GitHub repository where you want to store your worlds (e.g., `"https://github.com/YourUsername/MyMinecraftSaves"`).
 
 ## Support
@@ -61,10 +61,10 @@ If you find this mod useful, please consider supporting the developer:
 
 ## ⚠️ Security Warning ⚠️
 
-The `cloudsaves.json` configuration file will store sensitive credentials, including your GitHub Personal Access Token and your Google Drive refresh token.
+The `savelogic.json` configuration file will store sensitive credentials, including your GitHub Personal Access Token and your Google Drive refresh token.
 
 **Treat this file like a password.** Anyone with access to this file could potentially access your files on Google Drive or your repositories on GitHub.
 
-*   **Do not share your `cloudsaves.json` file with anyone.**
+*   **Do not share your `savelogic.json` file with anyone.**
 *   **Ensure the file is stored in a secure location.**
 *   **If you believe your credentials have been compromised, revoke them immediately from the respective service (Google or GitHub).**

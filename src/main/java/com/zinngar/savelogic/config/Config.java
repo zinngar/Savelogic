@@ -1,8 +1,8 @@
-package com.example.mod.config;
+package com.zinngar.savelogic.config;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import com.example.mod.CloudSaves;
+import com.zinngar.savelogic.SaveLogic;
 import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
@@ -26,12 +26,12 @@ public class Config {
 
     public static Config load() {
         Gson gson = new Gson();
-        File configFile = new File("config/cloudsaves.json");
+        File configFile = new File("config/savelogic.json");
         if (configFile.exists()) {
             try (FileReader reader = new FileReader(configFile)) {
                 return gson.fromJson(reader, Config.class);
             } catch (IOException e) {
-                CloudSaves.LOGGER.error("Failed to load config", e);
+                SaveLogic.LOGGER.error("Failed to load config", e);
             }
         }
         return new Config();
@@ -39,12 +39,12 @@ public class Config {
 
     public void save() {
         Gson gson = new GsonBuilder().setPrettyPrinting().create();
-        File configFile = new File("config/cloudsaves.json");
+        File configFile = new File("config/savelogic.json");
         configFile.getParentFile().mkdirs();
         try (FileWriter writer = new FileWriter(configFile)) {
             gson.toJson(this, writer);
         } catch (IOException e) {
-            CloudSaves.LOGGER.error("Failed to save config", e);
+            SaveLogic.LOGGER.error("Failed to save config", e);
         }
     }
 }

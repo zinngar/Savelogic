@@ -1,10 +1,10 @@
-package com.example.mod.client;
+package com.zinngar.savelogic.client;
 
-import com.example.mod.OperationType;
+import com.zinngar.savelogic.OperationType;
 import net.fabricmc.api.ClientModInitializer;
 import net.minecraft.client.gui.screen.Screen;
 
-public class CloudSavesClient implements ClientModInitializer {
+public class SaveLogicClient implements ClientModInitializer {
     public static boolean isSavingOperation = false;
     public static Screen parentScreen = null;
     public static CloudSaveOperation currentOperation = null;
@@ -14,7 +14,7 @@ public class CloudSavesClient implements ClientModInitializer {
     }
 
     public static void startCloudSave(Screen parentScreen, OperationType operationType) {
-        CloudSavesClient.parentScreen = parentScreen;
+        SaveLogicClient.parentScreen = parentScreen;
         currentOperation = new CloudSaveOperation(operationType, parentScreen);
         isSavingOperation = true;
     }

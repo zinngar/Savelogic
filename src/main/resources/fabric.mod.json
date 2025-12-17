@@ -7,10 +7,10 @@
 
   "entrypoints": {
     "main": [
-      "com.example.mod.CloudSaves"
+      "com.zinngar.savelogic.SaveLogic"
     ],
     "client": [
-      "com.example.mod.client.CloudSavesClient"
+      "com.zinngar.savelogic.client.SaveLogicClient"
     ]
   },
 
