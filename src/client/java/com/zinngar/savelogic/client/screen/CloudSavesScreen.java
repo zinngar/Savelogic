@@ -42,6 +42,10 @@ public class CloudSavesScreen extends Screen {
             }).dimensions(this.width / 2 - 100, l + 48, 200, 20).build());
         }
 
+        this.addDrawableChild(ButtonWidget.builder(Text.literal("Settings"), button -> {
+            this.client.setScreen(new SettingsScreen(this));
+        }).dimensions(this.width / 2 - 100, l + 72, 200, 20).build());
+
         this.addDrawableChild(ButtonWidget.builder(Text.literal("Back"), button -> {
             this.client.setScreen(parent);
         }).dimensions(this.width / 2 - 100, this.height - 30, 200, 20).build());
