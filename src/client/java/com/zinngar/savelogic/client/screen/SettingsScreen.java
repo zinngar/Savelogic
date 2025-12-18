@@ -1,5 +1,8 @@
 package com.zinngar.savelogic.client.screen;
 
+import com.zinngar.savelogic.CloudStorageProvider;
+import com.zinngar.savelogic.GitHubStorageProvider;
+import com.zinngar.savelogic.GoogleDriveProvider;
 import com.zinngar.savelogic.SaveLogic;
 import com.zinngar.savelogic.config.Config;
 import net.minecraft.client.gui.screen.Screen;
@@ -16,6 +19,7 @@ public class SettingsScreen extends Screen {
     private TextFieldWidget patField;
     private TextFieldWidget googleClientIdField;
     private TextFieldWidget googleClientSecretField;
+    private Text connectionStatus = Text.literal("");
 
     public SettingsScreen(Screen parent) {
         super(Text.literal("SaveLogic Settings"));
@@ -61,6 +65,10 @@ public class SettingsScreen extends Screen {
             this.client.setScreen(this.parent);
         }).dimensions(this.width / 2 - 100, this.height - 54, 200, 20).build());
 
+        this.addDrawableChild(ButtonWidget.builder(Text.literal("Test Connection"), button -> {
+            testConnection();
+        }).dimensions(this.width / 2 - 100, 230, 200, 20).build());
+
         this.addDrawableChild(ButtonWidget.builder(Text.literal("Back"), button -> {
             this.client.setScreen(this.parent);
         }).dimensions(this.width / 2 - 100, this.height - 30, 200, 20).build());
@@ -75,10 +83,36 @@ public class SettingsScreen extends Screen {
         context.drawTextWithShadow(this.textRenderer, Text.literal("GitHub Personal Access Token"), this.width / 2 - 100, 108, 10526880);
         context.drawTextWithShadow(this.textRenderer, Text.literal("Google Client ID"), this.width / 2 - 100, 148, 10526880);
         context.drawTextWithShadow(this.textRenderer, Text.literal("Google Client Secret"), this.width / 2 - 100, 188, 10526880);
+        context.drawCenteredTextWithShadow(this.textRenderer, this.connectionStatus, this.width / 2, 250, 16777215);
     }
 
     @Override
     public void close() {
         this.client.setScreen(this.parent);
+    }
+
+    private void testConnection() {
+        Config tempConfig = new Config();
+        tempConfig.provider = this.providerField.getText();
+        tempConfig.github.repositoryUrl = this.repoUrlField.getText();
+        tempConfig.github.personalAccessToken = this.patField.getText();
+        tempConfig.google.clientId = this.googleClientIdField.getText();
+        tempConfig.google.clientSecret = this.googleClientSecretField.getText();
+        tempConfig.google.refreshToken = SaveLogic.CONFIG.google.refreshToken;
+
+        CloudStorageProvider provider;
+        if ("github".equalsIgnoreCase(tempConfig.provider)) {
+            provider = new GitHubStorageProvider();
+        } else {
+            provider = new GoogleDriveProvider();
+        }
+
+        provider.testConnection().thenAccept(success -> {
+            if (success) {
+                this.connectionStatus = Text.literal("Connection successful!");
+            } else {
+                this.connectionStatus = Text.literal("Connection failed!");
+            }
+        });
     }
 }

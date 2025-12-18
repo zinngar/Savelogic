@@ -161,4 +161,30 @@ public class GitHubStorageProvider implements CloudStorageProvider {
         }
         return new String[]{parts[0], parts[1]};
     }
+
+    @Override
+    public CompletableFuture<Boolean> testConnection() {
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+                String[] parts = parseRepoUrl(SaveLogic.CONFIG.github.repositoryUrl);
+                String owner = parts[0];
+                String repo = parts[1];
+                String pat = SaveLogic.CONFIG.github.personalAccessToken;
+
+                String apiUrl = "https://api.github.com/repos/" + owner + "/" + repo;
+
+                Request request = new Request.Builder()
+                        .url(apiUrl)
+                        .header("Authorization", "token " + pat)
+                        .build();
+
+                try (Response response = client.newCall(request).execute()) {
+                    return response.isSuccessful();
+                }
+            } catch (IOException e) {
+                SaveLogic.LOGGER.error("Failed to test GitHub connection", e);
+                return false;
+            }
+        });
+    }
 }
