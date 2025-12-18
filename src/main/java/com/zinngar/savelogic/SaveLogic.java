@@ -13,6 +13,5 @@ public class SaveLogic implements ModInitializer {
 	@Override
 	public void onInitialize() {
 		LOGGER.info("SaveLogic mod initialized!");
-        CONFIG = Config.load();
 	}
 }
