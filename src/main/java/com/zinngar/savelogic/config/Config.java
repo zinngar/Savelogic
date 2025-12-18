@@ -34,7 +34,10 @@ public class Config {
                 SaveLogic.LOGGER.error("Failed to load config", e);
             }
         }
-        return new Config();
+        Config defaultConfig = new Config();
+        defaultConfig.provider = "github";
+        defaultConfig.save();
+        return defaultConfig;
     }
 
     public void save() {
