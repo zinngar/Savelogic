@@ -1,6 +1,8 @@
 package com.zinngar.savelogic.client;
 
 import com.zinngar.savelogic.OperationType;
+import com.zinngar.savelogic.SaveLogic;
+import com.zinngar.savelogic.config.Config;
 import net.fabricmc.api.ClientModInitializer;
 import net.minecraft.client.gui.screen.Screen;
 
@@ -11,6 +13,7 @@ public class SaveLogicClient implements ClientModInitializer {
 
     @Override
     public void onInitializeClient() {
+        SaveLogic.CONFIG = Config.load();
     }
 
     public static void startCloudSave(Screen parentScreen, OperationType operationType) {
