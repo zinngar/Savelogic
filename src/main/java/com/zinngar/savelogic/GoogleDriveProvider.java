@@ -311,4 +311,9 @@ public class GoogleDriveProvider implements CloudStorageProvider {
             }
         });
     }
+
+    @Override
+    public CompletableFuture<Boolean> testConnection() {
+        return getAccessToken().thenApply(accessToken -> accessToken != null);
+    }
 }

@@ -9,4 +9,5 @@ public interface CloudStorageProvider {
     CompletableFuture<File> downloadSave(String saveName);
     CompletableFuture<List<String>> listSaves();
     String getProviderName();
+    CompletableFuture<Boolean> testConnection();
 }
