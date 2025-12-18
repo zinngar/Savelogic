@@ -10,8 +10,13 @@ import java.io.IOException;
 
 public class Config {
     public String provider;
+    public boolean automaticBackup = false;
     public GitHubConfig github = new GitHubConfig();
     public GoogleConfig google = new GoogleConfig();
+
+    public boolean isAutomaticBackup() {
+        return automaticBackup;
+    }
 
     public static class GitHubConfig {
         public String repositoryUrl;
