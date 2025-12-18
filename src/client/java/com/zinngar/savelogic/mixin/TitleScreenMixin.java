@@ -23,6 +23,6 @@ public abstract class TitleScreenMixin extends Screen {
 
         this.addDrawableChild(ButtonWidget.builder(Text.translatable("savelogic.menu.cloud_saves"), button -> {
             this.client.setScreen(new CloudSavesScreen(this));
-        }).dimensions(this.width / 2 - 100, l + 72, 200, 20).build());
+        }).dimensions(this.width / 2 - 100, l + 60, 200, 20).build());
     }
 }
