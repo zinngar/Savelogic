@@ -21,7 +21,7 @@ public abstract class TitleScreenMixin extends Screen {
     private void onInit(CallbackInfo ci) {
         int l = this.height / 4 + 48;
 
-        this.addDrawableChild(ButtonWidget.builder(Text.translatable("menu.cloud_saves"), button -> {
+        this.addDrawableChild(ButtonWidget.builder(Text.translatable("savelogic.menu.cloud_saves"), button -> {
             this.client.setScreen(new CloudSavesScreen(this));
         }).dimensions(this.width / 2 - 100, l + 24, 200, 20).build());
     }
