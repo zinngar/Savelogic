@@ -48,7 +48,8 @@ public class GitHubStorageProvider implements CloudStorageProvider {
 
                 try (Response getResponse = client.newCall(getRequest).execute()) {
                     if (getResponse.isSuccessful()) {
-                        Map<String, Object> jsonResponse = gson.fromJson(getResponse.body().string(), Map.class);
+                        Type type = new TypeToken<Map<String, Object>>() {}.getType();
+                        Map<String, Object> jsonResponse = gson.fromJson(getResponse.body().string(), type);
                         payload.put("sha", (String) jsonResponse.get("sha"));
                     }
                 }
@@ -93,7 +94,8 @@ public class GitHubStorageProvider implements CloudStorageProvider {
 
                 try (Response response = client.newCall(request).execute()) {
                     if (response.isSuccessful()) {
-                        Map<String, Object> jsonResponse = gson.fromJson(response.body().string(), Map.class);
+                        Type type = new TypeToken<Map<String, Object>>() {}.getType();
+                        Map<String, Object> jsonResponse = gson.fromJson(response.body().string(), type);
                         String encodedContent = (String) jsonResponse.get("content");
                         byte[] decodedBytes = Base64.getDecoder().decode(encodedContent.replace("\n", ""));
 
