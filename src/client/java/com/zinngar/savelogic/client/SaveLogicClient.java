@@ -16,6 +16,7 @@ public class SaveLogicClient implements ClientModInitializer {
     @Override
     public void onInitializeClient() {
         SaveLogic.CONFIG = Config.load();
+        CloudStorageManager.initialize();
 
         ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> {
             if (SaveLogic.CONFIG.isAutomaticBackup()) {
