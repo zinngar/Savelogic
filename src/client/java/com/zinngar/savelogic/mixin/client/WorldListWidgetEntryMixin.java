@@ -1,4 +1,4 @@
-package com.zinngar.savelogic.mixin;
+package com.zinngar.savelogic.mixin.client;
 
 import com.zinngar.savelogic.client.SaveLogicClient;
 import com.zinngar.savelogic.SaveLogic;

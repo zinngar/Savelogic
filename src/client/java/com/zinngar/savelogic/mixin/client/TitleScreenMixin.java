@@ -1,4 +1,4 @@
-package com.zinngar.savelogic.mixin;
+package com.zinngar.savelogic.mixin.client;
 
 import com.zinngar.savelogic.client.screen.CloudSavesScreen;
 import com.zinngar.savelogic.client.screen.SettingsScreen;
@@ -18,8 +18,8 @@ public abstract class TitleScreenMixin extends Screen {
         super(title);
     }
 
-    @Inject(method = "init", at = @At("TAIL"))
-    private void onInit(CallbackInfo ci) {
+    @Inject(method = "initWidgets", at = @At("TAIL"))
+    private void onInitWidgets(CallbackInfo ci) {
         // Find the lowest button on the screen to position our buttons below it.
         int lowestButtonY = 0;
         for (net.minecraft.client.gui.Element element : this.children()) {
