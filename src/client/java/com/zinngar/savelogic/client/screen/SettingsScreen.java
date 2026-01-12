@@ -52,22 +52,27 @@ public class SettingsScreen extends Screen {
         this.googleClientSecretField.setText(config.google.clientSecret != null ? config.google.clientSecret : "");
         this.addDrawableChild(this.googleClientSecretField);
 
-        this.addDrawableChild(ButtonWidget.builder(Text.literal("Save"), button -> {
-            Config newConfig = new Config();
-            newConfig.provider = this.providerField.getText();
-            newConfig.github.repositoryUrl = this.repoUrlField.getText();
-            newConfig.github.personalAccessToken = this.patField.getText();
-            newConfig.google.clientId = this.googleClientIdField.getText();
-            newConfig.google.clientSecret = this.googleClientSecretField.getText();
-            newConfig.google.refreshToken = config.google.refreshToken; // Preserve the refresh token
-            newConfig.save();
-            SaveLogic.CONFIG = newConfig;
-            this.client.setScreen(this.parent);
-        }).dimensions(this.width / 2 - 100, this.height - 54, 200, 20).build());
+        this.addDrawableChild(ButtonWidget.builder(
+            Text.literal("Keep Local Backups: " + (config.keepLocalBackups ? "ON" : "OFF")),
+            button -> {
+                config.keepLocalBackups = !config.keepLocalBackups;
+                button.setMessage(Text.literal("Keep Local Backups: " + (config.keepLocalBackups ? "ON" : "OFF")));
+            }
+        ).dimensions(this.width / 2 - 100, 224, 200, 20).build());
 
         this.addDrawableChild(ButtonWidget.builder(Text.literal("Test Connection"), button -> {
             testConnection();
-        }).dimensions(this.width / 2 - 100, 230, 200, 20).build());
+        }).dimensions(this.width / 2 - 100, 248, 200, 20).build());
+
+        this.addDrawableChild(ButtonWidget.builder(Text.literal("Save"), button -> {
+            config.provider = this.providerField.getText();
+            config.github.repositoryUrl = this.repoUrlField.getText();
+            config.github.personalAccessToken = this.patField.getText();
+            config.google.clientId = this.googleClientIdField.getText();
+            config.google.clientSecret = this.googleClientSecretField.getText();
+            config.save();
+            this.client.setScreen(this.parent);
+        }).dimensions(this.width / 2 - 100, this.height - 54, 200, 20).build());
 
         this.addDrawableChild(ButtonWidget.builder(Text.literal("Back"), button -> {
             this.client.setScreen(this.parent);

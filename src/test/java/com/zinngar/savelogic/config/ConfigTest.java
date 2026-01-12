@@ -42,6 +42,16 @@ class ConfigTest {
     }
 
     @Test
+    void load_whenKeepLocalBackupsIsSet_loadsCorrectly() throws IOException {
+        String testJson = "{\"keepLocalBackups\": true}";
+        Files.write(new File(TEST_CONFIG_PATH).toPath(), testJson.getBytes());
+
+        Config config = Config.load();
+
+        assertTrue(config.keepLocalBackups);
+    }
+
+    @Test
     void save_writesConfigToFile() {
         Config config = new Config();
         config.provider = "google";

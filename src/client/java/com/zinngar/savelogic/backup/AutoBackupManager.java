@@ -42,11 +42,13 @@ public class AutoBackupManager {
                 provider.uploadSave(zipPath.toFile())
                     .thenRun(() -> {
                         SaveLogic.LOGGER.info("Successfully uploaded backup to the cloud.");
-                        try {
-                            Files.delete(zipPath);
-                            SaveLogic.LOGGER.info("Deleted local backup file: {}", zipPath);
-                        } catch (IOException e) {
-                            SaveLogic.LOGGER.error("Failed to delete local backup file: " + zipPath, e);
+                        if (!SaveLogic.CONFIG.keepLocalBackups) {
+                            try {
+                                Files.delete(zipPath);
+                                SaveLogic.LOGGER.info("Deleted local backup file: {}", zipPath);
+                            } catch (IOException e) {
+                                SaveLogic.LOGGER.error("Failed to delete local backup file: " + zipPath, e);
+                            }
                         }
                     })
                     .exceptionally(ex -> {
