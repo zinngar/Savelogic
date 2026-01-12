@@ -1,8 +1,9 @@
 package com.zinngar.savelogic.backup;
 
+import com.zinngar.savelogic.CloudStorageProvider;
 import com.zinngar.savelogic.SaveLogic;
+import com.zinngar.savelogic.client.CloudStorageManager;
 import com.zinngar.savelogic.client.util.WorldSaveUtils;
-import net.minecraft.client.MinecraftClient;
 
 import java.io.IOException;
 import java.nio.file.*;
@@ -33,9 +34,30 @@ public class AutoBackupManager {
         try {
             Files.createDirectories(backupDir);
             zipDirectory(worldDir, zipPath);
-            SaveLogic.LOGGER.info("Auto-backup created: {}", zipPath);
+            SaveLogic.LOGGER.info("Auto-backup created locally: {}", zipPath);
+
+            CloudStorageProvider provider = CloudStorageManager.getProvider();
+            if (provider != null) {
+                SaveLogic.LOGGER.info("Uploading auto-backup to {}...", provider.getProviderName());
+                provider.uploadSave(zipPath.toFile())
+                    .thenRun(() -> {
+                        SaveLogic.LOGGER.info("Successfully uploaded backup to the cloud.");
+                        try {
+                            Files.delete(zipPath);
+                            SaveLogic.LOGGER.info("Deleted local backup file: {}", zipPath);
+                        } catch (IOException e) {
+                            SaveLogic.LOGGER.error("Failed to delete local backup file: " + zipPath, e);
+                        }
+                    })
+                    .exceptionally(ex -> {
+                        SaveLogic.LOGGER.error("Failed to upload backup to the cloud.", ex);
+                        return null;
+                    });
+            } else {
+                SaveLogic.LOGGER.warn("No cloud provider configured. Backup will only be stored locally.");
+            }
         } catch (IOException e) {
-            SaveLogic.LOGGER.error("Failed to create backup", e);
+            SaveLogic.LOGGER.error("Failed to create local backup", e);
         }
     }
 

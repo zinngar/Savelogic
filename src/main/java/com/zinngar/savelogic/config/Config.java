@@ -32,17 +32,38 @@ public class Config {
     public static Config load() {
         Gson gson = new Gson();
         File configFile = new File("config/savelogic.json");
+        Config config = null;
         if (configFile.exists()) {
             try (FileReader reader = new FileReader(configFile)) {
-                return gson.fromJson(reader, Config.class);
+                config = gson.fromJson(reader, Config.class);
             } catch (IOException e) {
-                SaveLogic.LOGGER.error("Failed to load config", e);
+                SaveLogic.LOGGER.error("Failed to load config file, creating a new one.", e);
             }
         }
-        Config defaultConfig = new Config();
-        defaultConfig.provider = "github";
-        defaultConfig.save();
-        return defaultConfig;
+
+        if (config == null) {
+            config = new Config();
+        }
+
+        boolean needsSave = false;
+        if (config.provider == null || config.provider.isEmpty()) {
+            config.provider = "github";
+            needsSave = true;
+        }
+        if (config.github == null) {
+            config.github = new GitHubConfig();
+            needsSave = true;
+        }
+        if (config.google == null) {
+            config.google = new GoogleConfig();
+            needsSave = true;
+        }
+
+        if (needsSave) {
+            config.save();
+        }
+
+        return config;
     }
 
     public void save() {

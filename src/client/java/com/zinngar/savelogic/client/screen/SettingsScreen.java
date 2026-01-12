@@ -1,9 +1,9 @@
 package com.zinngar.savelogic.client.screen;
 
 import com.zinngar.savelogic.CloudStorageProvider;
-import com.zinngar.savelogic.GitHubStorageProvider;
-import com.zinngar.savelogic.GoogleDriveProvider;
+import com.zinngar.savelogic.CloudStorageProvider;
 import com.zinngar.savelogic.SaveLogic;
+import com.zinngar.savelogic.client.CloudStorageManager;
 import com.zinngar.savelogic.config.Config;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.ButtonWidget;
@@ -92,27 +92,25 @@ public class SettingsScreen extends Screen {
     }
 
     private void testConnection() {
-        Config tempConfig = new Config();
-        tempConfig.provider = this.providerField.getText();
-        tempConfig.github.repositoryUrl = this.repoUrlField.getText();
-        tempConfig.github.personalAccessToken = this.patField.getText();
-        tempConfig.google.clientId = this.googleClientIdField.getText();
-        tempConfig.google.clientSecret = this.googleClientSecretField.getText();
-        tempConfig.google.refreshToken = SaveLogic.CONFIG.google.refreshToken;
+        SaveLogic.CONFIG.provider = this.providerField.getText();
+        SaveLogic.CONFIG.github.repositoryUrl = this.repoUrlField.getText();
+        SaveLogic.CONFIG.github.personalAccessToken = this.patField.getText();
+        SaveLogic.CONFIG.google.clientId = this.googleClientIdField.getText();
+        SaveLogic.CONFIG.google.clientSecret = this.googleClientSecretField.getText();
 
-        CloudStorageProvider provider;
-        if ("github".equalsIgnoreCase(tempConfig.provider)) {
-            provider = new GitHubStorageProvider();
+        CloudStorageManager.initialize();
+        CloudStorageProvider provider = CloudStorageManager.getProvider();
+
+        if (provider != null) {
+            provider.testConnection().thenAccept(success -> {
+                if (success) {
+                    this.connectionStatus = Text.literal("Connection successful!");
+                } else {
+                    this.connectionStatus = Text.literal("Connection failed!");
+                }
+            });
         } else {
-            provider = new GoogleDriveProvider();
+            this.connectionStatus = Text.literal("Invalid provider configured.");
         }
-
-        provider.testConnection().thenAccept(success -> {
-            if (success) {
-                this.connectionStatus = Text.literal("Connection successful!");
-            } else {
-                this.connectionStatus = Text.literal("Connection failed!");
-            }
-        });
     }
 }
