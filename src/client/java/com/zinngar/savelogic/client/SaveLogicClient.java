@@ -16,6 +16,7 @@ public class SaveLogicClient implements ClientModInitializer {
     @Override
     public void onInitializeClient() {
         SaveLogic.CONFIG = Config.load();
+        SaveLogic.CONFIG.setUserId(net.minecraft.client.MinecraftClient.getInstance().getSession().getUuidOrNull());
         CloudStorageManager.initialize();
 
         ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> {

@@ -45,10 +45,13 @@ Before using the mod, you need to configure it by editing the `savelogic.json` f
 ### GitHub Configuration
 
 1.  **Set `provider` to `"github"`.**
-2.  **Create a Personal Access Token (PAT):**
-    *   Go to your GitHub "Developer settings" page.
-    *   Generate a new "Personal access token (classic)".
-    *   Give it a descriptive name and grant it the `repo` scope.
+2.  **Create a Fine-Grained Personal Access Token (PAT):**
+    *   Go to your GitHub **Developer settings** > **Personal access tokens** > **Fine-grained tokens**.
+    *   Click **Generate new token**.
+    *   Give it a descriptive name (e.g., "Minecraft Savelogic Mod").
+    *   Under **Repository access**, select **Only select repositories** and choose the private repository you want to use for your world saves.
+    *   Under **Permissions**, find **Contents** and change its access to **Read and write**. This is the only permission the mod needs.
+    *   Click **Generate token** and copy the token.
 3.  **Fill in `personalAccessToken` and `repositoryUrl`:**
     *   Copy the generated PAT into the `personalAccessToken` field in the `savelogic.json` file.
     *   Set the `repositoryUrl` to the URL of the private GitHub repository where you want to store your worlds (e.g., `"https://github.com/YourUsername/MyMinecraftSaves"`).
