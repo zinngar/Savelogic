@@ -79,15 +79,6 @@ public class SaveLogicSelectionScreen extends Screen {
 
     private void onSaveSelected(String saveName) {
         if (provider == null) return;
-
-        if (localSaveExists(saveName.replace(".zip", ""))) {
-            this.client.setScreen(new ConfirmOverwriteScreen(this, saveName, () -> downloadAndUnzip(saveName)));
-        } else {
-            downloadAndUnzip(saveName);
-        }
-    }
-
-    private void downloadAndUnzip(String saveName) {
         provider.downloadSave(saveName).thenAccept(file -> {
             if (file != null) {
                 try {
@@ -98,20 +89,11 @@ public class SaveLogicSelectionScreen extends Screen {
                 } catch (Exception e) {
                     SaveLogic.LOGGER.error("Failed to unzip save", e);
                     this.errorMessage = "Error unzipping save: " + e.getMessage();
-                } finally {
-                    if (file.exists()) {
-                        file.delete();
-                    }
                 }
             } else {
                 this.errorMessage = "Failed to download save.";
             }
         });
-    }
-
-    private boolean localSaveExists(String saveName) {
-        File savesDir = MinecraftClient.getInstance().getLevelStorage().getSavesDirectory().toFile();
-        return new File(savesDir, saveName).exists();
     }
 
     @Override

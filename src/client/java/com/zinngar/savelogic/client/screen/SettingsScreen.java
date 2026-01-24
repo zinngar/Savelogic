@@ -1,14 +1,17 @@
 package com.zinngar.savelogic.client.screen;
 
 import com.zinngar.savelogic.CloudStorageProvider;
-import com.zinngar.savelogic.CloudStorageProvider;
+import com.zinngar.savelogic.GitHubStorageProvider;
+import com.zinngar.savelogic.GoogleDriveProvider;
 import com.zinngar.savelogic.SaveLogic;
-import com.zinngar.savelogic.client.CloudStorageManager;
 import com.zinngar.savelogic.config.Config;
 import net.minecraft.client.gui.screen.Screen;
+import net.minecraft.client.gui.screen.ConfirmScreen;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.gui.widget.TextFieldWidget;
+import net.minecraft.client.toast.SystemToast;
 import net.minecraft.text.Text;
+import net.minecraft.util.Formatting;
 import net.minecraft.client.gui.DrawContext;
 
 public class SettingsScreen extends Screen {
@@ -52,27 +55,43 @@ public class SettingsScreen extends Screen {
         this.googleClientSecretField.setText(config.google.clientSecret != null ? config.google.clientSecret : "");
         this.addDrawableChild(this.googleClientSecretField);
 
-        this.addDrawableChild(ButtonWidget.builder(
-            Text.literal("Keep Local Backups: " + (config.keepLocalBackups ? "ON" : "OFF")),
-            button -> {
-                config.keepLocalBackups = !config.keepLocalBackups;
-                button.setMessage(Text.literal("Keep Local Backups: " + (config.keepLocalBackups ? "ON" : "OFF")));
-            }
-        ).dimensions(this.width / 2 - 100, 224, 200, 20).build());
+        this.addDrawableChild(ButtonWidget.builder(Text.literal("Save"), button -> {
+            Config newConfig = new Config();
+            newConfig.provider = this.providerField.getText();
+            newConfig.github.repositoryUrl = this.repoUrlField.getText();
+            newConfig.github.personalAccessToken = this.patField.getText();
+            newConfig.google.clientId = this.googleClientIdField.getText();
+            newConfig.google.clientSecret = this.googleClientSecretField.getText();
+            newConfig.google.refreshToken = config.google.refreshToken; // Preserve the refresh token
+            newConfig.save();
+            SaveLogic.CONFIG = newConfig;
+            this.client.setScreen(this.parent);
+        }).dimensions(this.width / 2 - 100, this.height - 54, 200, 20).build());
 
         this.addDrawableChild(ButtonWidget.builder(Text.literal("Test Connection"), button -> {
             testConnection();
-        }).dimensions(this.width / 2 - 100, 248, 200, 20).build());
+        }).dimensions(this.width / 2 - 100, 230, 200, 20).build());
 
-        this.addDrawableChild(ButtonWidget.builder(Text.literal("Save"), button -> {
-            config.provider = this.providerField.getText();
-            config.github.repositoryUrl = this.repoUrlField.getText();
-            config.github.personalAccessToken = this.patField.getText();
-            config.google.clientId = this.googleClientIdField.getText();
-            config.google.clientSecret = this.googleClientSecretField.getText();
-            config.save();
-            this.client.setScreen(this.parent);
-        }).dimensions(this.width / 2 - 100, this.height - 54, 200, 20).build());
+        this.addDrawableChild(ButtonWidget.builder(Text.literal("Logout").formatted(Formatting.RED), button -> {
+            this.client.setScreen(new ConfirmScreen(
+                confirmed -> {
+                    if (confirmed) {
+                        SaveLogic.CONFIG.google.refreshToken = "";
+                        SaveLogic.CONFIG.github.personalAccessToken = "";
+                        SaveLogic.CONFIG.save();
+                        this.client.getToastManager().add(new SystemToast(
+                            SystemToast.Type.PERIODIC_NOTIFICATION,
+                            Text.literal("Credentials Removed"),
+                            Text.literal("You will need to re-authenticate.")
+                        ));
+                    }
+                    this.client.setScreen(this);
+                },
+                Text.literal("Remove all stored credentials?"),
+                Text.literal("This action cannot be undone locally."),
+                Text.literal("Yes"), Text.literal("Cancel")
+            ));
+        }).dimensions(this.width / 2 - 100, this.height - 78, 200, 20).build());
 
         this.addDrawableChild(ButtonWidget.builder(Text.literal("Back"), button -> {
             this.client.setScreen(this.parent);
@@ -97,25 +116,27 @@ public class SettingsScreen extends Screen {
     }
 
     private void testConnection() {
-        SaveLogic.CONFIG.provider = this.providerField.getText();
-        SaveLogic.CONFIG.github.repositoryUrl = this.repoUrlField.getText();
-        SaveLogic.CONFIG.github.personalAccessToken = this.patField.getText();
-        SaveLogic.CONFIG.google.clientId = this.googleClientIdField.getText();
-        SaveLogic.CONFIG.google.clientSecret = this.googleClientSecretField.getText();
+        Config tempConfig = new Config();
+        tempConfig.provider = this.providerField.getText();
+        tempConfig.github.repositoryUrl = this.repoUrlField.getText();
+        tempConfig.github.personalAccessToken = this.patField.getText();
+        tempConfig.google.clientId = this.googleClientIdField.getText();
+        tempConfig.google.clientSecret = this.googleClientSecretField.getText();
+        tempConfig.google.refreshToken = SaveLogic.CONFIG.google.refreshToken;
 
-        CloudStorageManager.initialize();
-        CloudStorageProvider provider = CloudStorageManager.getProvider();
-
-        if (provider != null) {
-            provider.testConnection().thenAccept(success -> {
-                if (success) {
-                    this.connectionStatus = Text.literal("Connection successful!");
-                } else {
-                    this.connectionStatus = Text.literal("Connection failed!");
-                }
-            });
+        CloudStorageProvider provider;
+        if ("github".equalsIgnoreCase(tempConfig.provider)) {
+            provider = new GitHubStorageProvider();
         } else {
-            this.connectionStatus = Text.literal("Invalid provider configured.");
+            provider = new GoogleDriveProvider();
         }
+
+        provider.testConnection().thenAccept(success -> {
+            if (success) {
+                this.connectionStatus = Text.literal("Connection successful!");
+            } else {
+                this.connectionStatus = Text.literal("Connection failed!");
+            }
+        });
     }
 }

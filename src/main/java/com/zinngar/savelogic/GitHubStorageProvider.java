@@ -2,6 +2,7 @@ package com.zinngar.savelogic;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
+import com.zinngar.savelogic.util.HttpClient;
 import okhttp3.*;
 
 import java.io.File;
@@ -19,7 +20,7 @@ import java.util.stream.Collectors;
 
 public class GitHubStorageProvider implements CloudStorageProvider {
 
-    private static final OkHttpClient client = new OkHttpClient();
+    private static final OkHttpClient client = HttpClient.getClient();
     private static final Gson gson = new Gson();
 
     @Override

@@ -3,6 +3,7 @@ package com.zinngar.savelogic;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import com.sun.net.httpserver.HttpServer;
+import com.zinngar.savelogic.util.HttpClient;
 import okhttp3.*;
 
 import java.awt.Desktop;
@@ -23,7 +24,7 @@ import java.util.stream.Collectors;
 
 public class GoogleDriveProvider implements CloudStorageProvider {
 
-    private static final OkHttpClient client = new OkHttpClient();
+    private static final OkHttpClient client = HttpClient.getClient();
     private static final Gson gson = new Gson();
     private static final String REDIRECT_URI = "http://localhost:8080";
     private HttpServer server;
