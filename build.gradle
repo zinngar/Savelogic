@@ -16,29 +16,57 @@ repositories {
 
 configurations {
     shade
+    // Make shade extend implementation so IDEs resolve it properly
+    implementation.extendsFrom(shade)
 }
 
 dependencies {
     minecraft "com.mojang:minecraft:${project.minecraft_version}"
     mappings "net.fabricmc:yarn:${project.yarn_mappings}:v2"
-
     modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
     modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
 
-    // Shaded dependencies
-    implementation "com.squareup.okhttp3:okhttp:4.12.0"
-    implementation "com.squareup.okio:okio:3.6.0"
+    // Gson is already provided by Minecraft — do NOT shade it
     implementation "com.google.code.gson:gson:2.11.0"
+
+    // Shade only libs Minecraft doesn't bundle
     shade "com.squareup.okhttp3:okhttp:4.12.0"
     shade "com.squareup.okio:okio:3.6.0"
-    shade "com.google.code.gson:gson:2.11.0"
+}
+
+// Substitute fabric.mod.json placeholders
+processResources {
+    inputs.property "version", project.version
+
+    filesMatching("fabric.mod.json") {
+        expand "version": project.version
+    }
 }
 
 jar {
-    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    // Required by Loom for split-source mods
+    manifest {
+        attributes([
+            "Implementation-Title"  : project.archives_base_name,
+            "Implementation-Version": project.version
+        ])
+    }
+
+    // Shade only your declared deps, skip META-INF/signing artifacts
     from {
         configurations.shade.collect { it.isDirectory() ? it : zipTree(it) }
     }
+
+    exclude "META-INF/*.SF"
+    exclude "META-INF/*.DSA"
+    exclude "META-INF/*.RSA"
+    exclude "META-INF/MANIFEST.MF" // Loom writes its own
+
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+
+    // Reproducible builds
+    preserveFileTimestamps = false
+    reproducibleFileOrder  = true
 }
 
 loom {
@@ -56,4 +84,7 @@ java {
     toolchain {
         languageVersion = JavaLanguageVersion.of(21)
     }
+
+    // Generates sources and javadoc jars — useful for dev
+    withSourcesJar()
 }
