@@ -7,7 +7,7 @@
   "savelogic.settings.title": "SaveLogic Settings",
   "savelogic.settings.repository": "Private GitHub repository URL",
   "savelogic.settings.token": "GitHub fine-grained token (Contents: read and write)",
-  "savelogic.settings.auto_backup": "Local backup when leaving a world",
+  "savelogic.settings.auto_backup": "Local backup",
   "savelogic.settings.test": "Test Connection",
   "savelogic.settings.forget": "Forget Token",
   "savelogic.section.worlds": "Worlds",
@@ -17,5 +17,8 @@
   "savelogic.menu.cancel_setup": "Cancel Pending Install",
   "savelogic.setup.pending": "A downloaded setup will be installed when you close Minecraft.",
   "savelogic.setup.quit_now": "Close Minecraft Now",
-  "savelogic.setup.later": "Later"
+  "savelogic.setup.later": "Later",
+  "savelogic.settings.device": "This computer's name (shown in version history)",
+  "savelogic.settings.auto_upload": "Auto-upload",
+  "savelogic.settings.keep_versions": "Keep versions"
 }

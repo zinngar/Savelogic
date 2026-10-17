@@ -8,12 +8,16 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Stream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
 
 public class ZipUtil {
+
+    /** The game's lock file and SaveLogic's per-computer sync marker stay out of uploaded worlds. */
+    public static final Set<String> EXCLUDED_WORLD_FILES = Set.of("session.lock", "savelogic-sync.json");
 
     /** Zips the contents of worldDir (without a top-level folder) into zipFile. */
     public static void zipWorld(Path worldDir, Path zipFile) throws IOException {
@@ -25,7 +29,7 @@ public class ZipUtil {
         Map<String, Path> entries = new LinkedHashMap<>();
         try (Stream<Path> walk = Files.walk(worldDir)) {
             walk.filter(Files::isRegularFile)
-                    .filter(path -> !path.getFileName().toString().equals("session.lock"))
+                    .filter(path -> !EXCLUDED_WORLD_FILES.contains(path.getFileName().toString()))
                     .forEach(path -> entries.put(entryName(worldDir, path), path));
         }
         zipFiles(entries, zipFile, "Zipping world", progress);

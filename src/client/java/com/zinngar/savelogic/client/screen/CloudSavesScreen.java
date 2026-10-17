@@ -3,6 +3,7 @@ package com.zinngar.savelogic.client.screen;
 import com.zinngar.savelogic.GitHubStorageProvider.CloudSave;
 import com.zinngar.savelogic.client.CloudStorageManager;
 import com.zinngar.savelogic.client.CloudSync;
+import com.zinngar.savelogic.client.CloudText;
 import com.zinngar.savelogic.client.SaveLogicClient;
 import com.zinngar.savelogic.client.SetupSync;
 import com.zinngar.savelogic.client.TransferStatus;
@@ -14,8 +15,6 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.worldselection.SelectWorldScreen;
 import net.minecraft.network.chat.Component;
 
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 
 public class CloudSavesScreen extends Screen {
 
@@ -132,14 +131,7 @@ public class CloudSavesScreen extends Screen {
     }
 
     private static String describe(CloudSave setup) {
-        String when;
-        try {
-            when = "on " + LocalDateTime.parse(setup.stamp(), DateTimeFormatter.ofPattern("yyyyMMddHHmmss"))
-                    .format(DateTimeFormatter.ofPattern("d MMM yyyy 'at' HH:mm"));
-        } catch (RuntimeException e) {
-            when = "earlier";
-        }
-        return when + " (" + String.format("%.1f MB", setup.size() / (1024.0 * 1024)) + ")";
+        return CloudText.when(setup.uploaded()) + " (" + CloudText.size(setup.size()) + ")";
     }
 
     private void showMessage(String text, boolean error) {

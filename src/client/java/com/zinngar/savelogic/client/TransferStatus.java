@@ -18,7 +18,7 @@ public final class TransferStatus implements Progress {
 
     public static final TransferStatus INSTANCE = new TransferStatus();
 
-    private static final long RESULT_SHOWN_MS = 8000;
+    private static final long RESULT_SHOWN_MS = 5000;
     private static final int WIDTH = 280;
 
     private volatile String title;
@@ -68,6 +68,12 @@ public final class TransferStatus implements Progress {
     @Override
     public void bytes(long doneBytes) {
         this.done = doneBytes;
+    }
+
+    /** Stops showing the bar without a result, e.g. when the user is asked a question first. */
+    public void cancel() {
+        this.result = null;
+        this.active = false;
     }
 
     public void succeed(String message) {

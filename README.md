@@ -9,6 +9,9 @@ A Fabric mod for **Minecraft 26.3** that saves your singleplayer worlds to a **p
 *   **Big worlds:** each world is stored as its own GitHub *release* and split into 1 GB parts, so there is no practical size limit, and old copies are deleted rather than piling up in git history.
 *   **Safe re-uploads:** the new copy is fully uploaded before the old one is removed, so a failed upload never loses your cloud save.
 *   **Progress bar:** uploads and downloads show a bar at the top of the menus with percent, speed and time left, plus a clear success or error message when they finish.
+*   **Version history:** the last few versions of each world are kept (5 by default), each labelled with when and on which computer it was saved, and any of them can be restored. See [Playing on several computers](#playing-on-several-computers).
+*   **No accidental overwrites:** if another computer saved a world after your copy was synced, SaveLogic asks before uploading over it, and warns when you open a world that is open on another computer or has a newer version in the cloud.
+*   **Auto-sync:** synced worlds upload automatically when you leave them.
 *   **Same mods everywhere:** upload your mods and mod configs once, then install that setup on any other computer with the same Minecraft version. See [Mods & configs](#mods--configs).
 *   **Optional local backups:** zip a world into `.minecraft/savelogic-backups` every time you leave it.
 
@@ -23,6 +26,22 @@ A Fabric mod for **Minecraft 26.3** that saves your singleplayer worlds to a **p
 3.  **In Minecraft:** on the title screen click the **☁** button next to Singleplayer, then **Settings**. Paste the repository URL and the token, press **Test Connection**, then **Done**.
 
 Each world appears on your repository's **Releases** page as its own release, named after the world, with when it was last saved and its size. Don't delete those releases or their files; that is where your worlds live.
+
+## Playing on several computers
+
+A world becomes **synced** on a computer once you upload it from there or download it there. For synced worlds:
+
+*   **Opening the world** first checks the cloud (it takes a moment):
+    *   If it's open on another computer, you're told which one and since when, and can play anyway or cancel. If that computer crashed or was switched off mid-game, playing anyway is safe.
+    *   If another computer saved a newer version, you can download it and play (your copy is backed up first), play your copy, or cancel.
+    *   Otherwise it opens straight away and is marked as in use on this computer.
+*   **Leaving the world** uploads it (if *Auto-upload* is on in Settings) and marks it as no longer in use. Wait for the progress bar to finish before quitting Minecraft. If another computer saved a newer version in the meantime, the automatic upload doesn't overwrite it and tells you instead.
+*   **Uploading by hand** (*Save World to Cloud*) asks first if another computer saved a newer version: upload yours (theirs stays in history), upload yours as a separate world, or cancel.
+*   **Downloading a world you already have** asks whether to replace your copy (it's moved to `savelogic-backups/worlds` first) or keep both.
+*   **Version history:** *Load World from Cloud > Versions* lists the kept versions with when and where each was saved. Click one to restore it. *Settings > Keep versions* sets how many are kept (1, 3, 5 or 10). Each version takes space in your repository's releases.
+*   Give each computer a recognisable name in *Settings* so the history and warnings make sense.
+
+Worlds uploaded before version history existed show up as saved on "another computer". The first time you upload such a world from a computer, SaveLogic asks first, because that copy has never been synced. Choose *Upload mine*.
 
 ## Mods & configs
 

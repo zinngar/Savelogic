@@ -6,7 +6,8 @@
   "environment": "client",
   "entrypoints": {
     "fabric-client-gametest": [
-      "com.zinngar.savelogic.gametest.MenuScreenshotTest"
+      "com.zinngar.savelogic.gametest.MenuScreenshotTest",
+      "com.zinngar.savelogic.gametest.WorldSyncFlowTest"
     ]
   },
   "depends": {

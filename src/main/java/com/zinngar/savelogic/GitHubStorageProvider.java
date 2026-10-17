@@ -21,18 +21,21 @@ import java.nio.file.Path;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.Duration;
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.HexFormat;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Flow;
 import java.util.concurrent.atomic.AtomicLong;
@@ -48,6 +51,10 @@ import java.util.regex.Pattern;
  * {@code <world key>.<timestamp>.<part>-of-<count>.zip}; the new upload is completed before the previous one
  * is deleted, so a failed upload never removes the existing cloud copy.
  * <p>
+ * Worlds keep their last few versions. Which computer uploaded each version, and which computer currently has
+ * the world open (the "lock"), are kept in the release notes as hidden metadata ({@link WorldMeta}). Versions are
+ * ordered by GitHub's upload time, so computers with different clocks or time zones agree on which is newest.
+ * <p>
  * A "setup" (the mods and config folders) is stored the same way in a release tagged
  * {@code savelogicsetup-<Minecraft version>}, which deliberately does not start with the world prefix.
  */
@@ -59,8 +66,10 @@ public class GitHubStorageProvider {
     private static final String SETUP_TAG_PREFIX = "savelogicsetup-";
     public static final long PART_SIZE = 1024L * 1024 * 1024; // 1 GB, well under GitHub's 2 GB asset limit
 
-    private static final Pattern ASSET_NAME = Pattern.compile("^(.+)\\.(\\d{14})\\.(\\d+)-of-(\\d+)\\.zip$");
-    private static final DateTimeFormatter STAMP = DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
+    // Stamps were whole seconds (14 digits) before versions were kept; now milliseconds (17), so two uploads in the
+    // same second (two computers, or a quick re-upload) can't collide.
+    private static final Pattern ASSET_NAME = Pattern.compile("^(.+)\\.(\\d{14}|\\d{17})\\.(\\d+)-of-(\\d+)\\.zip$");
+    private static final DateTimeFormatter STAMP = DateTimeFormatter.ofPattern("yyyyMMddHHmmssSSS");
     private static final Duration TRANSFER_TIMEOUT = Duration.ofHours(2);
 
     private static final HttpClient HTTP = HttpClient.newBuilder()
@@ -69,61 +78,164 @@ public class GitHubStorageProvider {
             .build();
     private static final Gson GSON = new Gson();
 
-    /** One uploaded copy of a world, made of one or more parts. */
-    public record CloudSave(String worldName, String key, String stamp, List<Asset> parts) {
+    /** One uploaded version of a world (or setup), made of one or more parts. device is "" when unknown. */
+    public record CloudSave(String worldName, String key, String stamp, List<Asset> parts, Instant uploaded, String device) {
         public long size() {
             return parts.stream().mapToLong(Asset::size).sum();
         }
+
+        CloudSave withDevice(String device) {
+            return new CloudSave(worldName, key, stamp, parts, uploaded, device == null ? "" : device);
+        }
     }
 
-    /** label is the original world folder name, which GitHub keeps unaltered (asset names get rewritten). */
-    public record Asset(long id, String name, long size, String label) {}
+    /** A world in the cloud: its versions (newest first) and who has it open, if anyone. */
+    public record CloudWorld(String worldName, String key, List<CloudSave> versions, Lock lock) {
+        public CloudSave newest() {
+            return versions.get(0);
+        }
+    }
 
-    private record Release(long id, String tag, List<Asset> assets) {}
+    /** A world being open on a computer. since is epoch milliseconds. */
+    public record Lock(String deviceId, String device, long since) {}
+
+    /** This computer: a stable random id plus the name shown to the user. */
+    public record Device(String id, String name) {}
+
+    /** label is the original world folder name, which GitHub keeps unaltered (asset names get rewritten). */
+    public record Asset(long id, String name, long size, String label, Instant created) {}
+
+    private record Release(long id, String tag, String name, String body, List<Asset> assets) {}
 
     private final String owner;
     private final String repo;
     private final String token;
+    private final String apiBase;
+    private final String uploadsBase;
 
     public GitHubStorageProvider(String repositoryUrl, String token) {
+        // The system property only exists for SaveLogic's own tests, which run against a local fake GitHub.
+        this(repositoryUrl, token, System.getProperty("savelogic.testApiBase", "https://api.github.com"),
+                System.getProperty("savelogic.testApiBase", "https://uploads.github.com"));
+    }
+
+    GitHubStorageProvider(String repositoryUrl, String token, String apiBase, String uploadsBase) {
         String[] parts = parseRepoUrl(repositoryUrl);
         this.owner = parts[0];
         this.repo = parts[1];
         this.token = token == null ? "" : token.trim();
+        this.apiBase = apiBase;
+        this.uploadsBase = uploadsBase;
     }
 
     public boolean isConfigured() {
         return !owner.isEmpty() && !repo.isEmpty() && !token.isEmpty();
     }
 
-    /** Uploads a zipped world, replacing any previous cloud copy of the same world once the upload succeeds. */
-    public CompletableFuture<Void> uploadSave(String worldName, Path zipFile, Progress progress) {
-        return CompletableFuture.runAsync(() -> {
+    /**
+     * Uploads a zipped world as its newest version and returns that version's stamp. Keeps the newest
+     * keepVersions versions, deletes older and unfinished ones, and releases this device's lock on the world.
+     */
+    public CompletableFuture<String> uploadWorld(String worldName, Path zipFile, Device device, int keepVersions, Progress progress) {
+        return CompletableFuture.supplyAsync(() -> {
             List<Path> tempParts = new ArrayList<>();
             try {
                 String key = worldKey(worldName);
                 String tag = TAG_PREFIX + key;
                 List<Path> parts = splitIfNeeded(zipFile, tempParts);
                 List<Release> releases = listSaveReleases();
-                List<Asset> previous = releases.stream()
-                        .flatMap(r -> r.assets().stream())
-                        .filter(asset -> worldKeyOf(asset.name()).equals(key))
-                        .toList();
-                Long existing = releases.stream().filter(r -> r.tag().equals(tag)).findFirst().map(Release::id).orElse(null);
-                long release = existing != null ? existing : createRelease(tag, worldName, "Minecraft world uploaded by SaveLogic.");
+                Release existing = releases.stream().filter(r -> r.tag().equals(tag)).findFirst().orElse(null);
+                long release = existing != null ? existing.id() : createRelease(tag, worldName, "Minecraft world uploaded by SaveLogic.");
 
-                uploadParts(release, key, worldName, parts, previous, progress);
-                describeRelease(release, worldName, "Minecraft world **" + worldName + "**, uploaded by SaveLogic.\n\n"
-                        + lastSavedLine(Files.size(zipFile), parts.size())
-                        + "\n\nDon't edit or delete the attached files; load this world from Cloud Saves in Minecraft.");
-                removeEmptySharedRelease(releases, previous);
-                SaveLogic.LOGGER.info("Uploaded {} to GitHub in {} part(s)", worldName, parts.size());
+                String stamp = uploadParts(release, key, worldName, parts, List.of(), progress);
+
+                // Retention: everything for this world that isn't one of the newest complete versions goes.
+                List<Asset> ours = new ArrayList<>(releases.stream().flatMap(r -> r.assets().stream())
+                        .filter(asset -> worldKeyOf(asset.name()).equals(key)).toList());
+                List<CloudSave> versions = groupVersions(ours).getOrDefault(key, List.of());
+                Set<String> keep = new HashSet<>();
+                keep.add(stamp);
+                versions.stream().limit(Math.max(0, keepVersions - 1)).forEach(v -> {
+                    if (existing != null && existing.assets().containsAll(v.parts())) {
+                        keep.add(v.stamp()); // Versions still in the old shared release are migrated by dropping them.
+                    }
+                });
+                List<Asset> toDelete = ours.stream().filter(asset -> !keep.contains(stampOf(asset.name()))).toList();
+                for (Asset asset : toDelete) {
+                    deleteAsset(asset.id());
+                }
+
+                WorldMeta meta = existing != null ? WorldMeta.parse(existing.body()) : new WorldMeta();
+                meta.versions.keySet().retainAll(keep);
+                meta.versions.put(stamp, device.name());
+                if (meta.lock != null && meta.lock.deviceId().equals(device.id())) {
+                    meta.lock = null;
+                }
+                describeWorld(release, worldName, key, meta);
+                removeEmptySharedRelease(releases, toDelete);
+                SaveLogic.LOGGER.info("Uploaded {} to GitHub in {} part(s) as version {}", worldName, parts.size(), stamp);
+                return stamp;
             } catch (IOException | InterruptedException e) {
                 throw new RuntimeException(e.getMessage(), e);
             } finally {
                 deleteAll(tempParts);
             }
         });
+    }
+
+    /** Lists every world in the cloud with its complete versions, newest first. */
+    public CompletableFuture<List<CloudWorld>> listWorlds() {
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+                List<Release> releases = listSaveReleases();
+                Map<String, List<CloudSave>> byKey = groupVersions(releases.stream().flatMap(r -> r.assets().stream()).toList());
+                List<CloudWorld> worlds = new ArrayList<>();
+                byKey.forEach((key, versions) -> {
+                    Release release = releases.stream().filter(r -> r.tag().equals(TAG_PREFIX + key)).findFirst().orElse(null);
+                    WorldMeta meta = release != null ? WorldMeta.parse(release.body()) : new WorldMeta();
+                    List<CloudSave> named = versions.stream().map(v -> v.withDevice(meta.versions.get(v.stamp()))).toList();
+                    worlds.add(new CloudWorld(named.get(0).worldName(), key, named, meta.lock));
+                });
+                worlds.sort(Comparator.comparing(CloudWorld::worldName, String.CASE_INSENSITIVE_ORDER));
+                return worlds;
+            } catch (IOException | InterruptedException e) {
+                throw new RuntimeException(e.getMessage(), e);
+            }
+        });
+    }
+
+    /** Marks a cloud world as open on this device (locked) or not. Does nothing if the world isn't in the cloud. */
+    public CompletableFuture<Void> setLock(String worldName, Device device, boolean locked) {
+        return CompletableFuture.runAsync(() -> {
+            try {
+                String key = worldKey(worldName);
+                Release release = findReleaseByTag(TAG_PREFIX + key);
+                if (release == null) {
+                    return;
+                }
+                WorldMeta meta = WorldMeta.parse(release.body());
+                if (locked) {
+                    meta.lock = new Lock(device.id(), device.name(), System.currentTimeMillis());
+                } else if (meta.lock != null && meta.lock.deviceId().equals(device.id())) {
+                    meta.lock = null;
+                } else {
+                    return; // Not ours to release.
+                }
+                describeWorld(release.id(), release.name(), key, meta, release.assets());
+            } catch (IOException | InterruptedException e) {
+                throw new RuntimeException(e.getMessage(), e);
+            }
+        });
+    }
+
+    private void describeWorld(long releaseId, String worldName, String key, WorldMeta meta) throws IOException, InterruptedException {
+        describeWorld(releaseId, worldName, key, meta, listAssets(releaseId));
+    }
+
+    private void describeWorld(long releaseId, String worldName, String key, WorldMeta meta, List<Asset> assets)
+            throws IOException, InterruptedException {
+        List<CloudSave> versions = groupVersions(assets).getOrDefault(key, List.of());
+        describeRelease(releaseId, worldName, WorldMeta.render(worldName, versions, meta));
     }
 
     // --- Setups (mods and configs) ---
@@ -186,8 +298,11 @@ public class GitHubStorageProvider {
 
     // --- Shared upload steps ---
 
-    /** Uploads the parts as a new copy, then deletes the previous copy, so a failed upload keeps the old one. */
-    private void uploadParts(long release, String key, String label, List<Path> parts, List<Asset> previous, Progress progress)
+    /**
+     * Uploads the parts as a new copy, then deletes the given previous assets, so a failed upload keeps the old
+     * copy. Returns the new copy's stamp.
+     */
+    private String uploadParts(long release, String key, String label, List<Path> parts, List<Asset> previous, Progress progress)
             throws IOException, InterruptedException {
         String stamp = LocalDateTime.now().format(STAMP);
         for (int i = 0; i < parts.size(); i++) {
@@ -200,6 +315,7 @@ public class GitHubStorageProvider {
         for (Asset asset : previous) {
             deleteAsset(asset.id());
         }
+        return stamp;
     }
 
     private static String lastSavedLine(long size, int partCount) {
@@ -244,17 +360,6 @@ public class GitHubStorageProvider {
         });
     }
 
-    /** Lists the newest complete upload of each world. */
-    public CompletableFuture<List<CloudSave>> listSaves() {
-        return CompletableFuture.supplyAsync(() -> {
-            try {
-                return groupSaves(listSaveReleases().stream().flatMap(r -> r.assets().stream()).toList());
-            } catch (IOException | InterruptedException e) {
-                throw new RuntimeException(e.getMessage(), e);
-            }
-        });
-    }
-
     /** Returns null if the token can write to the repository, otherwise a message explaining what is wrong. */
     public CompletableFuture<String> testConnection() {
         return CompletableFuture.supplyAsync(() -> {
@@ -290,7 +395,7 @@ public class GitHubStorageProvider {
      */
     private String explainNotFound() throws IOException, InterruptedException {
         String repoName = owner + "/" + repo;
-        HttpResponse<String> user = send(authorized(HttpRequest.newBuilder(URI.create("https://api.github.com/user"))).GET());
+        HttpResponse<String> user = send(authorized(HttpRequest.newBuilder(URI.create(apiBase + "/user"))).GET());
         if (user.statusCode() != 200) {
             return describeError("sign in", user);
         }
@@ -315,8 +420,7 @@ public class GitHubStorageProvider {
                 JsonObject json = element.getAsJsonObject();
                 String tag = json.get("tag_name").getAsString();
                 if (tag.startsWith(TAG_PREFIX)) {
-                    long id = json.get("id").getAsLong();
-                    releases.add(new Release(id, tag, listAssets(id)));
+                    releases.add(toRelease(json));
                 }
             }
             if (array.size() < 100) {
@@ -336,8 +440,18 @@ public class GitHubStorageProvider {
         if (response.statusCode() != 200) {
             throw new IOException(describeError("find release", response));
         }
-        long id = GSON.fromJson(response.body(), JsonObject.class).get("id").getAsLong();
-        return new Release(id, tag, listAssets(id));
+        return toRelease(GSON.fromJson(response.body(), JsonObject.class));
+    }
+
+    private Release toRelease(JsonObject json) throws IOException, InterruptedException {
+        long id = json.get("id").getAsLong();
+        return new Release(id, json.get("tag_name").getAsString(), stringOrEmpty(json, "name"), stringOrEmpty(json, "body"),
+                listAssets(id));
+    }
+
+    private static String stringOrEmpty(JsonObject json, String field) {
+        JsonElement value = json.get(field);
+        return value == null || value.isJsonNull() ? "" : value.getAsString();
     }
 
     private long createRelease(String tag, String name, String description) throws IOException, InterruptedException {
@@ -398,9 +512,8 @@ public class GitHubStorageProvider {
             JsonArray array = GSON.fromJson(response.body(), JsonArray.class);
             for (JsonElement element : array) {
                 JsonObject json = element.getAsJsonObject();
-                JsonElement label = json.get("label");
                 assets.add(new Asset(json.get("id").getAsLong(), json.get("name").getAsString(), json.get("size").getAsLong(),
-                        label == null || label.isJsonNull() ? "" : label.getAsString()));
+                        stringOrEmpty(json, "label"), Instant.parse(json.get("created_at").getAsString())));
             }
             if (array.size() < 100) {
                 return assets;
@@ -409,7 +522,7 @@ public class GitHubStorageProvider {
     }
 
     private void uploadAsset(long releaseId, String name, String label, Path file, Progress progress) throws IOException, InterruptedException {
-        URI uri = URI.create("https://uploads.github.com/repos/" + encode(owner) + "/" + encode(repo)
+        URI uri = URI.create(uploadsBase + "/repos/" + encode(owner) + "/" + encode(repo)
                 + "/releases/" + releaseId + "/assets?name=" + encode(name) + "&label=" + encode(label));
         HttpRequest.Builder request = authorized(HttpRequest.newBuilder(uri))
                 .timeout(TRANSFER_TIMEOUT)
@@ -457,7 +570,7 @@ public class GitHubStorageProvider {
     // --- Naming ---
 
     /** Builds a stable, asset-safe key for a world folder name (GitHub rewrites spaces and symbols in asset names). */
-    static String worldKey(String worldName) {
+    public static String worldKey(String worldName) {
         String safe = worldName.replaceAll("[^A-Za-z0-9_-]", "_");
         if (safe.length() > 60) {
             safe = safe.substring(0, 60);
@@ -475,37 +588,57 @@ public class GitHubStorageProvider {
         return matcher.matches() ? matcher.group(1) : "";
     }
 
+    private static String stampOf(String assetName) {
+        Matcher matcher = ASSET_NAME.matcher(assetName);
+        return matcher.matches() ? matcher.group(2) : "";
+    }
+
+    /** The newest complete upload for each key (used for setups). */
     static List<CloudSave> groupSaves(List<Asset> assets) {
+        List<CloudSave> saves = new ArrayList<>();
+        groupVersions(assets).values().forEach(versions -> saves.add(versions.get(0)));
+        saves.sort(Comparator.comparing(CloudSave::worldName, String.CASE_INSENSITIVE_ORDER));
+        return saves;
+    }
+
+    /** Every complete upload for each key, newest first by GitHub upload time. Unfinished uploads are left out. */
+    static Map<String, List<CloudSave>> groupVersions(List<Asset> assets) {
         // key -> stamp -> parts (indexed by part number)
         Map<String, Map<String, Asset[]>> uploads = new LinkedHashMap<>();
-        Map<String, String> names = new LinkedHashMap<>();
         for (Asset asset : assets) {
             Matcher matcher = ASSET_NAME.matcher(asset.name());
             if (!matcher.matches()) {
                 continue;
             }
-            String key = matcher.group(1);
             int part = Integer.parseInt(matcher.group(3));
             int count = Integer.parseInt(matcher.group(4));
             if (part < 1 || part > count) {
                 continue;
             }
-            Asset[] parts = uploads.computeIfAbsent(key, k -> new LinkedHashMap<>())
+            Asset[] parts = uploads.computeIfAbsent(matcher.group(1), k -> new LinkedHashMap<>())
                     .computeIfAbsent(matcher.group(2), stamp -> new Asset[count]);
             if (parts.length != count) {
                 continue; // Mismatched part counts under one timestamp; ignore the stray asset.
             }
             parts[part - 1] = asset;
-            names.putIfAbsent(key, asset.label().isEmpty() ? key : asset.label());
         }
 
-        List<CloudSave> saves = new ArrayList<>();
-        uploads.forEach((key, byStamp) -> byStamp.entrySet().stream()
-                .filter(entry -> Arrays.stream(entry.getValue()).allMatch(Objects::nonNull))
-                .max(Map.Entry.comparingByKey())
-                .ifPresent(newest -> saves.add(new CloudSave(names.get(key), key, newest.getKey(), List.of(newest.getValue())))));
-        saves.sort(Comparator.comparing(CloudSave::worldName, String.CASE_INSENSITIVE_ORDER));
-        return saves;
+        Map<String, List<CloudSave>> result = new LinkedHashMap<>();
+        uploads.forEach((key, byStamp) -> {
+            List<CloudSave> versions = new ArrayList<>();
+            byStamp.forEach((stamp, parts) -> {
+                if (Arrays.stream(parts).allMatch(Objects::nonNull)) {
+                    String label = parts[0].label().isEmpty() ? key : parts[0].label();
+                    Instant uploaded = Arrays.stream(parts).map(Asset::created).max(Comparator.naturalOrder()).orElseThrow();
+                    versions.add(new CloudSave(label, key, stamp, List.of(parts), uploaded, ""));
+                }
+            });
+            if (!versions.isEmpty()) {
+                versions.sort(Comparator.comparing(CloudSave::uploaded).thenComparing(CloudSave::stamp).reversed());
+                result.put(key, versions);
+            }
+        });
+        return result;
     }
 
     private static List<Path> splitIfNeeded(Path zipFile, List<Path> tempParts) throws IOException {
@@ -543,7 +676,7 @@ public class GitHubStorageProvider {
     // --- HTTP helpers ---
 
     private HttpRequest.Builder api(String path) {
-        URI uri = URI.create("https://api.github.com/repos/" + encode(owner) + "/" + encode(repo) + path);
+        URI uri = URI.create(apiBase + "/repos/" + encode(owner) + "/" + encode(repo) + path);
         return authorized(HttpRequest.newBuilder(uri)).timeout(Duration.ofMinutes(1));
     }
 
