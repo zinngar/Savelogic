@@ -1,74 +1,64 @@
 package com.zinngar.savelogic.client.screen;
 
-import com.zinngar.savelogic.client.CloudSaveOperation;
-import com.zinngar.savelogic.client.SaveLogicClient;
-import com.zinngar.savelogic.OperationType;
-import com.zinngar.savelogic.SaveLogic;
 import com.zinngar.savelogic.client.CloudStorageManager;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.screen.world.SelectWorldScreen;
-import net.minecraft.client.gui.widget.ButtonWidget;
-import net.minecraft.text.Text;
+import com.zinngar.savelogic.client.SaveLogicClient;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.gui.screens.worldselection.SelectWorldScreen;
+import net.minecraft.network.chat.Component;
 
 public class CloudSavesScreen extends Screen {
 
     private final Screen parent;
 
     public CloudSavesScreen(Screen parent) {
-        super(Text.literal("Cloud Saves"));
+        super(Component.translatable("savelogic.menu.cloud_saves"));
         this.parent = parent;
     }
 
     @Override
     protected void init() {
-        super.init();
+        // Returning here (e.g. pressing Back on the world picker) cancels a pending upload pick.
+        SaveLogicClient.uploadPickerScreen = null;
 
-        int l = this.height / 4 + 48;
+        boolean configured = CloudStorageManager.getProvider() != null;
+        int top = this.height / 4 + 24;
 
-        ButtonWidget saveButton = ButtonWidget.builder(Text.translatable("menu.cloud_saves.save"), button -> {
-            SaveLogicClient.startCloudSave(this, OperationType.SAVE);
-            this.client.setScreen(new SelectWorldScreen(this));
-        }).dimensions(this.width / 2 - 100, l, 200, 20).build();
+        Button saveButton = this.addRenderableWidget(Button.builder(Component.translatable("savelogic.menu.save"), button -> {
+            SelectWorldScreen picker = new SelectWorldScreen(this);
+            SaveLogicClient.uploadPickerScreen = picker;
+            SaveLogicClient.uploadReturnScreen = this;
+            this.minecraft.gui.setScreen(picker);
+        }).bounds(this.width / 2 - 100, top, 200, 20).build());
 
-        ButtonWidget loadButton = ButtonWidget.builder(Text.translatable("menu.cloud_saves.load"), button -> {
-            this.client.setScreen(new SaveLogicSelectionScreen(new CloudSaveOperation(OperationType.LOAD, this)));
-        }).dimensions(this.width / 2 - 100, l + 24, 200, 20).build();
+        Button loadButton = this.addRenderableWidget(Button.builder(Component.translatable("savelogic.menu.load"),
+                button -> this.minecraft.gui.setScreen(new SaveLogicSelectionScreen(this)))
+                .bounds(this.width / 2 - 100, top + 24, 200, 20).build());
 
-        if (CloudStorageManager.getProvider() == null) {
-            saveButton.active = false;
-            loadButton.active = false;
-            this.addDrawableChild(saveButton);
-            this.addDrawableChild(loadButton);
-        } else {
-            this.addDrawableChild(saveButton);
-            this.addDrawableChild(loadButton);
-            if ("google".equalsIgnoreCase(SaveLogic.CONFIG.provider) &&
-                (SaveLogic.CONFIG.google.refreshToken == null || SaveLogic.CONFIG.google.refreshToken.isEmpty())) {
-                this.addDrawableChild(ButtonWidget.builder(Text.literal("Login with Google Drive"), button -> {
-                    ((com.zinngar.savelogic.GoogleDriveProvider) CloudStorageManager.getProvider()).initiateAuthorization();
-                }).dimensions(this.width / 2 - 100, l + 48, 200, 20).build());
-            }
-        }
+        saveButton.active = configured;
+        loadButton.active = configured;
 
-        this.addDrawableChild(ButtonWidget.builder(Text.literal("Settings"), button -> {
-            this.client.setScreen(new SettingsScreen(this));
-        }).dimensions(this.width / 2 - 100, l + 72, 200, 20).build());
+        this.addRenderableWidget(Button.builder(Component.translatable("savelogic.menu.settings"),
+                button -> this.minecraft.gui.setScreen(new SettingsScreen(this)))
+                .bounds(this.width / 2 - 100, top + 48, 200, 20).build());
 
-        this.addDrawableChild(ButtonWidget.builder(Text.literal("Back"), button -> {
-            this.client.setScreen(parent);
-        }).dimensions(this.width / 2 - 100, this.height - 30, 200, 20).build());
+        this.addRenderableWidget(Button.builder(Component.translatable("gui.back"), button -> this.onClose())
+                .bounds(this.width / 2 - 100, this.height - 30, 200, 20).build());
     }
 
     @Override
-    public void close() {
-        this.client.setScreen(parent);
+    public void onClose() {
+        this.minecraft.gui.setScreen(parent);
     }
 
     @Override
-    public void render(net.minecraft.client.gui.DrawContext context, int mouseX, int mouseY, float delta) {
-        super.render(context, mouseX, mouseY, delta);
+    public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
+        super.extractRenderState(graphics, mouseX, mouseY, delta);
+        graphics.centeredText(this.font, this.title, this.width / 2, 20, 0xFFFFFFFF);
         if (CloudStorageManager.getProvider() == null) {
-            context.drawCenteredTextWithShadow(this.textRenderer, "Please configure a provider in the settings.", this.width / 2, this.height / 4 + 48 + 54, 16737380);
+            graphics.centeredText(this.font, Component.translatable("savelogic.message.not_configured"),
+                    this.width / 2, this.height / 4 + 24 + 76, 0xFFFF6060);
         }
     }
 }

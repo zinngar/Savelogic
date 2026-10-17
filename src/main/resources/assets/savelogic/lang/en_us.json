@@ -1,3 +1,13 @@
 {
-  "savelogic.menu.cloud_saves": "Cloud Saves"
+  "savelogic.menu.cloud_saves": "Cloud Saves",
+  "savelogic.menu.save": "Save World to Cloud",
+  "savelogic.menu.load": "Load World from Cloud",
+  "savelogic.menu.settings": "Settings",
+  "savelogic.message.not_configured": "Set your GitHub repository and token in Settings first.",
+  "savelogic.settings.title": "SaveLogic Settings",
+  "savelogic.settings.repository": "Private GitHub repository URL",
+  "savelogic.settings.token": "GitHub fine-grained token (Contents: read and write)",
+  "savelogic.settings.auto_backup": "Local backup when leaving a world",
+  "savelogic.settings.test": "Test Connection",
+  "savelogic.settings.forget": "Forget Token"
 }

@@ -1,117 +1,117 @@
 package com.zinngar.savelogic.client.screen;
 
-import com.zinngar.savelogic.CloudStorageProvider;
-import com.zinngar.savelogic.SaveLogic;
-import com.zinngar.savelogic.client.CloudSaveOperation;
+import com.zinngar.savelogic.GitHubStorageProvider;
+import com.zinngar.savelogic.GitHubStorageProvider.CloudSave;
 import com.zinngar.savelogic.client.CloudStorageManager;
-import com.zinngar.savelogic.util.ZipUtil;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.widget.ButtonWidget;
-import net.minecraft.text.Text;
+import com.zinngar.savelogic.client.CloudSync;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.network.chat.Component;
 
-import java.io.File;
-import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.CompletionException;
 
+/** Lists the worlds stored in the cloud and downloads the one that is clicked. */
 public class SaveLogicSelectionScreen extends Screen {
 
-    private final CloudSaveOperation operation;
-    private List<String> saves = Collections.emptyList();
-    private CloudStorageProvider provider;
-    private boolean isLoading = true;
-    private String errorMessage = null;
+    private static final int ROW_HEIGHT = 24;
 
-    public SaveLogicSelectionScreen(CloudSaveOperation operation) {
-        super(Text.literal("Select Cloud Save to Load"));
-        this.operation = operation;
-        this.provider = CloudStorageManager.getProvider();
+    private final Screen parent;
+    private List<CloudSave> saves = List.of();
+    private boolean busy = true;
+    private String status = "Loading cloud saves...";
+    private int scroll = 0;
+
+    public SaveLogicSelectionScreen(Screen parent) {
+        super(Component.translatable("savelogic.menu.load"));
+        this.parent = parent;
+    }
+
+    @Override
+    public void added() {
+        super.added();
+        GitHubStorageProvider provider = CloudStorageManager.getProvider();
+        if (provider == null) {
+            busy = false;
+            status = Component.translatable("savelogic.message.not_configured").getString();
+            return;
+        }
+        provider.listSaves().whenComplete((result, error) -> this.minecraft.execute(() -> {
+            busy = false;
+            if (error != null) {
+                Throwable cause = error instanceof CompletionException && error.getCause() != null ? error.getCause() : error;
+                status = "Could not load cloud saves: " + cause.getMessage();
+            } else {
+                saves = result;
+                status = result.isEmpty() ? "No cloud saves yet." : null;
+            }
+            this.rebuildWidgets();
+        }));
     }
 
     @Override
     protected void init() {
-        if (provider == null) {
-            isLoading = false;
-            errorMessage = "Cloud provider not configured. Please check your settings.";
-            addButtons();
-            return;
+        int visibleRows = Math.max(1, (this.height - 110) / ROW_HEIGHT);
+        scroll = Math.max(0, Math.min(scroll, saves.size() - visibleRows));
+
+        int y = 44;
+        for (int i = scroll; i < Math.min(saves.size(), scroll + visibleRows); i++) {
+            CloudSave save = saves.get(i);
+            Button button = this.addRenderableWidget(Button.builder(
+                    Component.literal(save.worldName() + "  (" + formatSize(save.size()) + ")"),
+                    b -> download(save)).bounds(this.width / 2 - 125, y, 250, 20).build());
+            button.active = !busy;
+            y += ROW_HEIGHT;
         }
 
-        provider.listSaves().thenAccept(cloudSaves -> {
-            this.saves = cloudSaves;
-            this.isLoading = false;
-            this.clearChildren();
-            addButtons();
-        }).exceptionally(e -> {
-            this.isLoading = false;
-            this.errorMessage = "Failed to load saves: " + e.getMessage();
-            this.clearChildren();
-            addButtons();
-            return null;
-        });
-
-        addButtons();
-    }
-
-    private void addButtons() {
-        this.clearChildren();
-        int y = 40;
-        if (!isLoading && !saves.isEmpty()) {
-            for (String saveName : saves) {
-                this.addDrawableChild(
-                    ButtonWidget.builder(
-                        Text.literal(saveName),
-                        btn -> onSaveSelected(saveName)
-                    ).dimensions(this.width / 2 - 100, y, 200, 20).build()
-                );
-                y += 24;
-            }
+        if (saves.size() > visibleRows) {
+            Button up = this.addRenderableWidget(Button.builder(Component.literal("▲"), b -> {
+                scroll--;
+                this.rebuildWidgets();
+            }).bounds(this.width / 2 + 130, 44, 20, 20).build());
+            up.active = scroll > 0;
+            Button down = this.addRenderableWidget(Button.builder(Component.literal("▼"), b -> {
+                scroll++;
+                this.rebuildWidgets();
+            }).bounds(this.width / 2 + 130, 44 + (visibleRows - 1) * ROW_HEIGHT, 20, 20).build());
+            down.active = scroll + visibleRows < saves.size();
         }
 
-        this.addDrawableChild(
-            ButtonWidget.builder(
-                Text.literal("Back"),
-                btn -> this.client.setScreen(operation.parentScreen)
-            ).dimensions(this.width / 2 - 100, this.height - 30, 200, 20).build()
-        );
+        this.addRenderableWidget(Button.builder(Component.translatable("gui.back"), b -> this.onClose())
+                .bounds(this.width / 2 - 100, this.height - 30, 200, 20).build());
     }
 
-    private void onSaveSelected(String saveName) {
-        if (provider == null) return;
-        provider.downloadSave(saveName).thenAccept(file -> {
-            if (file != null) {
-                try {
-                    File savesDir = MinecraftClient.getInstance().getLevelStorage().getSavesDirectory().toFile();
-                    ZipUtil.unzip(file, savesDir);
-                    SaveLogic.LOGGER.info("Unzipped save: " + saveName);
-                    this.client.execute(() -> this.client.setScreen(operation.parentScreen));
-                } catch (Exception e) {
-                    SaveLogic.LOGGER.error("Failed to unzip save", e);
-                    this.errorMessage = "Error unzipping save: " + e.getMessage();
-                }
-            } else {
-                this.errorMessage = "Failed to download save.";
-            }
+    private void download(CloudSave save) {
+        busy = true;
+        status = "Downloading " + save.worldName() + " (" + formatSize(save.size()) + ")...";
+        this.rebuildWidgets();
+        CloudSync.downloadWorld(save, this::onClose, error -> {
+            busy = false;
+            status = "Download failed: " + error;
+            this.rebuildWidgets();
         });
     }
 
-    @Override
-    public void close() {
-        this.client.setScreen(operation.parentScreen);
+    private static String formatSize(long bytes) {
+        if (bytes >= 1024L * 1024 * 1024) {
+            return String.format("%.1f GB", bytes / (1024.0 * 1024 * 1024));
+        }
+        return String.format("%.1f MB", bytes / (1024.0 * 1024));
     }
 
     @Override
-    public void render(DrawContext context, int mouseX, int mouseY, float delta) {
-        super.render(context, mouseX, mouseY, delta);
-        context.drawCenteredTextWithShadow(this.textRenderer, this.title, this.width / 2, 15, 16777215);
+    public void onClose() {
+        this.minecraft.gui.setScreen(parent);
+    }
 
-        if (isLoading) {
-            context.drawCenteredTextWithShadow(this.textRenderer, "Loading saves...", this.width / 2, 60, 16777215);
-        } else if (errorMessage != null) {
-            context.drawCenteredTextWithShadow(this.textRenderer, errorMessage, this.width / 2, 60, 16711680); // Red
-        } else if (saves.isEmpty()) {
-            context.drawCenteredTextWithShadow(this.textRenderer, "No cloud saves found.", this.width / 2, 60, 16777215);
+    @Override
+    public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
+        super.extractRenderState(graphics, mouseX, mouseY, delta);
+        graphics.centeredText(this.font, this.title, this.width / 2, 15, 0xFFFFFFFF);
+        if (status != null) {
+            boolean failed = status.startsWith("Could not") || status.startsWith("Download failed");
+            graphics.centeredText(this.font, status, this.width / 2, 28, failed ? 0xFFFF6060 : 0xFFA0A0A0);
         }
     }
 }

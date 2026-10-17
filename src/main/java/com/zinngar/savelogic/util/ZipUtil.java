@@ -1,76 +1,58 @@
 package com.zinngar.savelogic.util;
 
-import java.io.BufferedOutputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
+import java.util.List;
+import java.util.stream.Stream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
 
 public class ZipUtil {
 
-    public static Path zipWorld(Path worldDir) throws IOException {
-        Path zipFilePath = worldDir.getParent().resolve(worldDir.getFileName() + ".zip");
-        try (ZipOutputStream zos = new ZipOutputStream(new FileOutputStream(zipFilePath.toFile()))) {
-            Files.walk(worldDir)
-                    .filter(path -> !Files.isDirectory(path))
-                    .forEach(path -> {
-                        ZipEntry zipEntry = new ZipEntry(worldDir.relativize(path).toString());
-                        try {
-                            zos.putNextEntry(zipEntry);
-                            Files.copy(path, zos);
-                            zos.closeEntry();
-                        } catch (IOException e) {
-                            System.err.println("Failed to zip file: " + path + " " + e.getMessage());
-                        }
-                    });
+    /** Zips the contents of worldDir (without a top-level folder) into zipFile. */
+    public static void zipWorld(Path worldDir, Path zipFile) throws IOException {
+        List<Path> files;
+        try (Stream<Path> walk = Files.walk(worldDir)) {
+            files = walk.filter(Files::isRegularFile)
+                    .filter(path -> !path.getFileName().toString().equals("session.lock"))
+                    .toList();
         }
-        return zipFilePath;
-    }
-
-    public static void unzip(File zipFile, File destDir) throws IOException {
-        byte[] buffer = new byte[1024];
-        ZipInputStream zis = new ZipInputStream(new FileInputStream(zipFile));
-        ZipEntry zipEntry = zis.getNextEntry();
-        while (zipEntry != null) {
-            File newFile = newFile(destDir, zipEntry);
-            if (zipEntry.isDirectory()) {
-                if (!newFile.isDirectory() && !newFile.mkdirs()) {
-                    throw new IOException("Failed to create directory " + newFile);
-                }
-            } else {
-                File parent = newFile.getParentFile();
-                if (!parent.isDirectory() && !parent.mkdirs()) {
-                    throw new IOException("Failed to create directory " + parent);
-                }
-
-                FileOutputStream fos = new FileOutputStream(newFile);
-                int len;
-                while ((len = zis.read(buffer)) > 0) {
-                    fos.write(buffer, 0, len);
-                }
-                fos.close();
+        try (OutputStream out = Files.newOutputStream(zipFile);
+             ZipOutputStream zos = new ZipOutputStream(out)) {
+            for (Path path : files) {
+                // Zip entries must use '/' so worlds zipped on Windows unzip correctly elsewhere.
+                String name = worldDir.relativize(path).toString().replace('\\', '/');
+                zos.putNextEntry(new ZipEntry(name));
+                Files.copy(path, zos);
+                zos.closeEntry();
             }
-            zipEntry = zis.getNextEntry();
         }
-        zis.closeEntry();
-        zis.close();
     }
 
-    public static File newFile(File destinationDir, ZipEntry zipEntry) throws IOException {
-        File destFile = new File(destinationDir, zipEntry.getName());
-
-        String destDirPath = destinationDir.getCanonicalPath();
-        String destFilePath = destFile.getCanonicalPath();
-
-        if (!destFilePath.startsWith(destDirPath + File.separator)) {
-            throw new IOException("Entry is outside of the target dir: " + zipEntry.getName());
+    /** Extracts zipFile into destDir, refusing entries that would escape it. */
+    public static void unzip(Path zipFile, Path destDir) throws IOException {
+        Path root = destDir.toAbsolutePath().normalize();
+        Files.createDirectories(root);
+        try (InputStream in = Files.newInputStream(zipFile);
+             ZipInputStream zis = new ZipInputStream(in)) {
+            ZipEntry entry;
+            while ((entry = zis.getNextEntry()) != null) {
+                Path target = root.resolve(entry.getName()).normalize();
+                if (!target.startsWith(root) || target.equals(root)) {
+                    throw new IOException("Zip entry is outside of the target folder: " + entry.getName());
+                }
+                if (entry.isDirectory()) {
+                    Files.createDirectories(target);
+                } else {
+                    Files.createDirectories(target.getParent());
+                    Files.copy(zis, target, StandardCopyOption.REPLACE_EXISTING);
+                }
+            }
         }
-
-        return destFile;
     }
 }

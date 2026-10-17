@@ -1,26 +1,15 @@
 package com.zinngar.savelogic.client;
 
-import com.zinngar.savelogic.CloudStorageProvider;
 import com.zinngar.savelogic.GitHubStorageProvider;
-import com.zinngar.savelogic.GoogleDriveProvider;
 import com.zinngar.savelogic.SaveLogic;
 
 public class CloudStorageManager {
 
-    private static CloudStorageProvider provider;
-
-    public static void initialize() {
-        if ("google".equalsIgnoreCase(SaveLogic.CONFIG.provider)) {
-            provider = new GoogleDriveProvider();
-        } else if ("github".equalsIgnoreCase(SaveLogic.CONFIG.provider)) {
-            provider = new GitHubStorageProvider();
-        }
-    }
-
-    public static CloudStorageProvider getProvider() {
-        if (provider == null) {
-            initialize();
-        }
-        return provider;
+    /** Returns a provider for the current settings, or null if the repository or token is missing. */
+    public static GitHubStorageProvider getProvider() {
+        GitHubStorageProvider provider = new GitHubStorageProvider(
+                SaveLogic.CONFIG.github.repositoryUrl,
+                SaveLogic.CONFIG.github.personalAccessToken);
+        return provider.isConfigured() ? provider : null;
     }
 }

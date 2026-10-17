@@ -1,34 +1,30 @@
 package com.zinngar.savelogic.client;
 
-import com.zinngar.savelogic.OperationType;
 import com.zinngar.savelogic.SaveLogic;
 import com.zinngar.savelogic.backup.AutoBackupManager;
 import com.zinngar.savelogic.config.Config;
 import net.fabricmc.api.ClientModInitializer;
-import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
-import net.minecraft.client.gui.screen.Screen;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.world.level.storage.LevelResource;
 
 public class SaveLogicClient implements ClientModInitializer {
-    public static boolean isSavingOperation = false;
-    public static Screen parentScreen = null;
-    public static CloudSaveOperation currentOperation = null;
+    /**
+     * The world-select screen opened by "Save to Cloud". Picking a world on this screen uploads it
+     * instead of opening it; any other world-select screen behaves normally.
+     */
+    public static Screen uploadPickerScreen = null;
+    public static Screen uploadReturnScreen = null;
 
     @Override
     public void onInitializeClient() {
         SaveLogic.CONFIG = Config.load();
-        SaveLogic.CONFIG.setUserId(net.minecraft.client.MinecraftClient.getInstance().getSession().getUuidOrNull());
-        CloudStorageManager.initialize();
 
-        ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> {
-            if (SaveLogic.CONFIG.isAutomaticBackup()) {
-                AutoBackupManager.backupCurrentWorld();
+        // Runs after the singleplayer server has saved and closed the world, so the files are complete.
+        ServerLifecycleEvents.SERVER_STOPPED.register(server -> {
+            if (!server.isDedicatedServer() && SaveLogic.CONFIG.isAutomaticBackup()) {
+                AutoBackupManager.backupWorld(server.getWorldPath(LevelResource.ROOT).toAbsolutePath().normalize());
             }
         });
-    }
-
-    public static void startCloudSave(Screen parentScreen, OperationType operationType) {
-        SaveLogicClient.parentScreen = parentScreen;
-        currentOperation = new CloudSaveOperation(operationType, parentScreen);
-        isSavingOperation = true;
     }
 }

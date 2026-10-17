@@ -1,94 +1,92 @@
 package com.zinngar.savelogic.util;
 
 import com.zinngar.savelogic.SaveLogic;
+import net.fabricmc.loader.api.FabricLoader;
+
 import javax.crypto.Cipher;
 import javax.crypto.SecretKey;
-import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.GCMParameterSpec;
-import javax.crypto.spec.PBEKeySpec;
 import javax.crypto.spec.SecretKeySpec;
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
-import java.security.NoSuchAlgorithmException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.security.SecureRandom;
-import java.security.spec.InvalidKeySpecException;
-import java.security.spec.KeySpec;
 import java.util.Base64;
-import java.util.UUID;
 
+/**
+ * Keeps the token out of plain sight in savelogic.json. The key is a random value stored in
+ * config/savelogic.key, so this protects against casually sharing or screenshotting the config,
+ * not against someone who can read every file on the computer.
+ */
 public class CryptoUtils {
 
+    private static final String PREFIX = "enc:";
     private static final String ALGORITHM = "AES/GCM/NoPadding";
-    private static final int GCM_IV_LENGTH = 12; // 96 bits
-    private static final int GCM_TAG_LENGTH = 128; // bits
-    private static final String KEY_ALGORITHM = "AES";
-    private static final String KEY_FACTORY_ALGORITHM = "PBKDF2WithHmacSHA256";
-    private static final byte[] SALT = "savelogic-salt".getBytes(StandardCharsets.UTF_8);
-    private static final int ITERATION_COUNT = 65536;
-    private static final int KEY_LENGTH = 256; // bits
+    private static final int GCM_IV_LENGTH = 12;
+    private static final int GCM_TAG_LENGTH = 128;
+    private static final int KEY_BYTES = 32;
+    private static final SecureRandom RANDOM = new SecureRandom();
 
-    private static SecretKey secretKey = null;
+    private static SecretKey secretKey;
 
-    private static SecretKey getKey(UUID userId) throws NoSuchAlgorithmException, InvalidKeySpecException {
+    private static synchronized SecretKey getKey() throws IOException {
         if (secretKey == null) {
-            SecretKeyFactory factory = SecretKeyFactory.getInstance(KEY_FACTORY_ALGORITHM);
-            KeySpec spec = new PBEKeySpec(userId.toString().toCharArray(), SALT, ITERATION_COUNT, KEY_LENGTH);
-            SecretKey tmp = factory.generateSecret(spec);
-            secretKey = new SecretKeySpec(tmp.getEncoded(), KEY_ALGORITHM);
+            Path keyFile = FabricLoader.getInstance().getConfigDir().resolve("savelogic.key");
+            byte[] key;
+            if (Files.exists(keyFile)) {
+                key = Base64.getDecoder().decode(Files.readString(keyFile).trim());
+            } else {
+                key = new byte[KEY_BYTES];
+                RANDOM.nextBytes(key);
+                Files.createDirectories(keyFile.getParent());
+                Files.writeString(keyFile, Base64.getEncoder().encodeToString(key));
+            }
+            secretKey = new SecretKeySpec(key, "AES");
         }
         return secretKey;
     }
 
-    public static String encrypt(String plaintext, UUID userId) {
+    public static String encrypt(String plaintext) {
         if (plaintext == null || plaintext.isEmpty()) {
             return plaintext;
         }
         try {
             byte[] iv = new byte[GCM_IV_LENGTH];
-            new SecureRandom().nextBytes(iv);
+            RANDOM.nextBytes(iv);
 
             Cipher cipher = Cipher.getInstance(ALGORITHM);
-            GCMParameterSpec gcmParameterSpec = new GCMParameterSpec(GCM_TAG_LENGTH, iv);
-            cipher.init(Cipher.ENCRYPT_MODE, getKey(userId), gcmParameterSpec);
-
+            cipher.init(Cipher.ENCRYPT_MODE, getKey(), new GCMParameterSpec(GCM_TAG_LENGTH, iv));
             byte[] cipherText = cipher.doFinal(plaintext.getBytes(StandardCharsets.UTF_8));
 
-            ByteBuffer byteBuffer = ByteBuffer.allocate(iv.length + cipherText.length);
-            byteBuffer.put(iv);
-            byteBuffer.put(cipherText);
-
-            return Base64.getEncoder().encodeToString(byteBuffer.array());
+            ByteBuffer buffer = ByteBuffer.allocate(iv.length + cipherText.length);
+            buffer.put(iv).put(cipherText);
+            return PREFIX + Base64.getEncoder().encodeToString(buffer.array());
         } catch (Exception e) {
-            SaveLogic.LOGGER.error("Failed to encrypt data", e);
-            return null;
+            SaveLogic.LOGGER.error("Failed to encrypt token; it will not be saved", e);
+            return "";
         }
     }
 
-    public static String decrypt(String base64CipherText, UUID userId) {
-        if (base64CipherText == null || base64CipherText.isEmpty()) {
-            return base64CipherText;
+    /** Values without the "enc:" prefix are treated as plain text, so a token can be pasted straight into the file. */
+    public static String decrypt(String stored) {
+        if (stored == null || !stored.startsWith(PREFIX)) {
+            return stored;
         }
         try {
-            byte[] decoded = Base64.getDecoder().decode(base64CipherText);
-            ByteBuffer byteBuffer = ByteBuffer.wrap(decoded);
-
+            ByteBuffer buffer = ByteBuffer.wrap(Base64.getDecoder().decode(stored.substring(PREFIX.length())));
             byte[] iv = new byte[GCM_IV_LENGTH];
-            byteBuffer.get(iv);
-
-            byte[] cipherText = new byte[byteBuffer.remaining()];
-            byteBuffer.get(cipherText);
+            buffer.get(iv);
+            byte[] cipherText = new byte[buffer.remaining()];
+            buffer.get(cipherText);
 
             Cipher cipher = Cipher.getInstance(ALGORITHM);
-            GCMParameterSpec gcmParameterSpec = new GCMParameterSpec(GCM_TAG_LENGTH, iv);
-            cipher.init(Cipher.DECRYPT_MODE, getKey(userId), gcmParameterSpec);
-
-            byte[] decryptedText = cipher.doFinal(cipherText);
-            return new String(decryptedText, StandardCharsets.UTF_8);
+            cipher.init(Cipher.DECRYPT_MODE, getKey(), new GCMParameterSpec(GCM_TAG_LENGTH, iv));
+            return new String(cipher.doFinal(cipherText), StandardCharsets.UTF_8);
         } catch (Exception e) {
-            // This can happen if the data is not encrypted (e.g., old config)
-            // or if decryption fails for any other reason.
-            SaveLogic.LOGGER.warn("Failed to decrypt data. Assuming it's plaintext. Error: {}", e.getMessage());
-            return base64CipherText; // Return original text if decryption fails
+            SaveLogic.LOGGER.error("Could not decrypt the saved GitHub token; please enter it again in SaveLogic settings", e);
+            return "";
         }
     }
 }

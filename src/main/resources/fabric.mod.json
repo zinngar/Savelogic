@@ -3,7 +3,12 @@
   "id": "savelogic",
   "version": "${version}",
   "name": "SaveLogic",
-  "environment": "*",
+  "description": "Save and load your singleplayer worlds to a private GitHub repository.",
+  "authors": ["zinngar"],
+  "contact": {
+    "sources": "https://github.com/zinngar/Savelogic"
+  },
+  "environment": "client",
 
   "entrypoints": {
     "main": [
@@ -15,12 +20,16 @@
   },
 
   "mixins": [
-    "savelogic.mixins.json"
+    {
+      "config": "savelogic.mixins.json",
+      "environment": "client"
+    }
   ],
 
   "depends": {
-    "fabricloader": ">=0.15.0",
-    "minecraft": "1.21.x",
+    "fabricloader": ">=0.19.5",
+    "minecraft": "~26.3",
+    "java": ">=25",
     "fabric-api": "*"
   }
 }

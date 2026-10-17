@@ -1,73 +1,46 @@
-# Cloud Saves Fabric Mod
+# SaveLogic: Cloud Saves for Minecraft
 
-This is a Fabric mod for Minecraft 1.21.11 that allows you to save and load your single-player worlds to and from the cloud. It currently supports Google Drive and GitHub as cloud storage providers.
+A Fabric mod for **Minecraft 26.3** that saves your singleplayer worlds to a **private GitHub repository** and loads them back on any computer.
 
 ## Features
 
-*   **Cloud Backup:** Upload your Minecraft worlds to Google Drive or a private GitHub repository.
-*   **Cloud Sync:** Download your worlds from the cloud to play on different computers.
-*   **Simple UI:** Buttons on the main menu allow for easy saving and loading of worlds.
+*   **Save to cloud:** pick a world and upload it. Uploading the same world again replaces the previous cloud copy.
+*   **Load from cloud:** download a world into your saves folder. Existing local worlds are never overwritten; a download that would clash gets a name like `My World (2)`.
+*   **Big worlds:** each world is stored as its own GitHub *release* and split into 1 GB parts, so there is no practical size limit, and old copies are deleted rather than piling up in git history.
+*   **Safe re-uploads:** the new copy is fully uploaded before the old one is removed, so a failed upload never loses your cloud save.
+*   **Optional local backups:** zip a world into `.minecraft/savelogic-backups` every time you leave it.
+
+## Setup
+
+1.  **Create a private repository** on GitHub (for example `minecraft-saves`). It can be empty.
+2.  **Create a fine-grained personal access token:**
+    *   GitHub **Settings** > **Developer settings** > **Personal access tokens** > **Fine-grained tokens** > **Generate new token**.
+    *   Under **Repository access**, choose **Only select repositories** and pick your saves repository.
+    *   Under **Permissions**, set **Contents** to **Read and write**. That is the only permission needed.
+    *   Generate the token and copy it.
+3.  **In Minecraft:** title screen > **Cloud Saves** > **Settings**. Paste the repository URL and the token, press **Test Connection**, then **Done**.
+
+Each world appears on your repository's **Releases** page as its own release, named after the world, with when it was last saved and its size. Don't delete those releases or their files; that is where your worlds live.
 
 ## Build
 
-1.  Ensure you have the Java 21 JDK installed and that your `JAVA_HOME` environment variable is set correctly.
-2.  From the project root directory, run the following command:
-    ```bash
-    ./gradlew build
-    ```
-3.  The compiled mod `.jar` file will be located in the `build/libs/` directory.
+Requires a JDK 25 or newer.
 
-## Configuration
+```bash
+./gradlew build
+```
 
-Before using the mod, you need to configure it by editing the `savelogic.json` file located in your Minecraft `config` directory.
-
-### General Configuration
-
-*   `provider`: Set this to either `"google"` or `"github"` to choose your desired cloud storage provider.
-
-### Google Drive Configuration
-
-1.  **Set `provider` to `"google"`.**
-2.  **Create a Google Cloud Platform Project:**
-    *   Go to the [Google API Console](https://console.developers.google.com/).
-    *   Create a new project.
-    *   Enable the **Google Drive API** for your project.
-    *   From the "Credentials" page, create an **OAuth client ID** for a **Desktop app**.
-3.  **Fill in `clientId` and `clientSecret`:**
-    *   Copy the "Client ID" and "Client Secret" from the Google API Console into the respective fields in the `savelogic.json` file.
-4.  **First-time Login:**
-    *   When you first start Minecraft with the mod configured for Google Drive, a "Login with Google Drive" button will appear on the main menu.
-    *   Clicking this will open a Google authorization page in your web browser.
-    *   Log in and grant the mod permission to access your Google Drive.
-    *   After authorization, you will be redirected to a page confirming success. You can then close the browser window.
-    *   The mod will securely store a refresh token in the config file for future use.
-
-### GitHub Configuration
-
-1.  **Set `provider` to `"github"`.**
-2.  **Create a Fine-Grained Personal Access Token (PAT):**
-    *   Go to your GitHub **Developer settings** > **Personal access tokens** > **Fine-grained tokens**.
-    *   Click **Generate new token**.
-    *   Give it a descriptive name (e.g., "Minecraft Savelogic Mod").
-    *   Under **Repository access**, select **Only select repositories** and choose the private repository you want to use for your world saves.
-    *   Under **Permissions**, find **Contents** and change its access to **Read and write**. This is the only permission the mod needs.
-    *   Click **Generate token** and copy the token.
-3.  **Fill in `personalAccessToken` and `repositoryUrl`:**
-    *   Copy the generated PAT into the `personalAccessToken` field in the `savelogic.json` file.
-    *   Set the `repositoryUrl` to the URL of the private GitHub repository where you want to store your worlds (e.g., `"https://github.com/YourUsername/MyMinecraftSaves"`).
+The mod jar is written to `build/libs/`. Install it together with Fabric Loader 0.19.5+ and Fabric API for 26.3.
 
 ## Support
 
 If you find this mod useful, please consider supporting the developer:
 
 [<img src="https://img.shields.io/badge/Donate-PayPal-blue.svg?logo=paypal" alt="Donate via PayPal">](https://www.paypal.com/donate/?business=RQFEAWX7E39CG&no_recurring=0&item_name=Support+Savelogic+Development+&currency_code=AUD)
+## Security
 
-## ⚠️ Security Warning ⚠️
+Your token is stored encrypted in `config/savelogic.json`, with the key in `config/savelogic.key`. That keeps it from leaking if you share or screenshot your config, but anyone who can copy both files from your computer can use it.
 
-The `savelogic.json` configuration file will store sensitive credentials, including your GitHub Personal Access Token and your Google Drive refresh token.
-
-**Treat this file like a password.** Anyone with access to this file could potentially access your files on Google Drive or your repositories on GitHub.
-
-*   **Do not share your `savelogic.json` file with anyone.**
-*   **Ensure the file is stored in a secure location.**
-*   **If you believe your credentials have been compromised, revoke them immediately from the respective service (Google or GitHub).**
+*   **Use a fine-grained token limited to your saves repository**, so a leaked token can't touch anything else.
+*   **Keep the saves repository private.** Test Connection warns you if it is public.
+*   **If you think the token leaked**, revoke it on GitHub and paste a new one into Settings.

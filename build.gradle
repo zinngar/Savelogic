@@ -1,5 +1,5 @@
 plugins {
-    id 'fabric-loom' version "${loom_version}"
+    id 'net.fabricmc.fabric-loom' version "${loom_version}"
 }
 
 version = project.mod_version
@@ -9,64 +9,25 @@ base {
     archivesName = project.archives_base_name
 }
 
-repositories {
-    mavenCentral()
-    maven { url = "https://maven.fabricmc.net/" }
-}
-
-configurations {
-    shade
-    // Make shade extend implementation so IDEs resolve it properly
-    implementation.extendsFrom(shade)
-}
-
 dependencies {
     minecraft "com.mojang:minecraft:${project.minecraft_version}"
-    mappings "net.fabricmc:yarn:${project.yarn_mappings}:v2"
-    modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
-    modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
-
-    // Gson is already provided by Minecraft — do NOT shade it
-    implementation "com.google.code.gson:gson:2.11.0"
-
-    // Shade only libs Minecraft doesn't bundle
-    shade "com.squareup.okhttp3:okhttp:4.12.0"
-    shade "com.squareup.okio:okio:3.6.0"
+    implementation "net.fabricmc:fabric-loader:${project.loader_version}"
+    implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
+    // HTTP uses java.net.http and JSON uses the Gson that ships with Minecraft,
+    // so nothing needs to be bundled into the jar.
 }
 
-// Substitute fabric.mod.json placeholders
 processResources {
-    inputs.property "version", project.version
+    def version = project.version
+    inputs.property "version", version
 
     filesMatching("fabric.mod.json") {
-        expand "version": project.version
+        expand "version": version
     }
 }
 
-jar {
-    // Required by Loom for split-source mods
-    manifest {
-        attributes([
-            "Implementation-Title"  : project.archives_base_name,
-            "Implementation-Version": project.version
-        ])
-    }
-
-    // Shade only your declared deps, skip META-INF/signing artifacts
-    from {
-        configurations.shade.collect { it.isDirectory() ? it : zipTree(it) }
-    }
-
-    exclude "META-INF/*.SF"
-    exclude "META-INF/*.DSA"
-    exclude "META-INF/*.RSA"
-    exclude "META-INF/MANIFEST.MF" // Loom writes its own
-
-    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-
-    // Reproducible builds
-    preserveFileTimestamps = false
-    reproducibleFileOrder  = true
+tasks.withType(JavaCompile).configureEach {
+    it.options.release = 25
 }
 
 loom {
@@ -81,10 +42,8 @@ loom {
 }
 
 java {
-    toolchain {
-        languageVersion = JavaLanguageVersion.of(21)
-    }
-
-    // Generates sources and javadoc jars — useful for dev
     withSourcesJar()
+
+    sourceCompatibility = JavaVersion.VERSION_25
+    targetCompatibility = JavaVersion.VERSION_25
 }
