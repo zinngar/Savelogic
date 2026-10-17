@@ -9,5 +9,13 @@
   "savelogic.settings.token": "GitHub fine-grained token (Contents: read and write)",
   "savelogic.settings.auto_backup": "Local backup when leaving a world",
   "savelogic.settings.test": "Test Connection",
-  "savelogic.settings.forget": "Forget Token"
+  "savelogic.settings.forget": "Forget Token",
+  "savelogic.section.worlds": "Worlds",
+  "savelogic.section.setup": "Mods & configs",
+  "savelogic.menu.upload_setup": "Upload My Mods & Configs",
+  "savelogic.menu.install_setup": "Install Mods & Configs from Cloud",
+  "savelogic.menu.cancel_setup": "Cancel Pending Install",
+  "savelogic.setup.pending": "A downloaded setup will be installed when you close Minecraft.",
+  "savelogic.setup.quit_now": "Close Minecraft Now",
+  "savelogic.setup.later": "Later"
 }

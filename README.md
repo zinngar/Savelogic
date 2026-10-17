@@ -9,6 +9,7 @@ A Fabric mod for **Minecraft 26.3** that saves your singleplayer worlds to a **p
 *   **Big worlds:** each world is stored as its own GitHub *release* and split into 1 GB parts, so there is no practical size limit, and old copies are deleted rather than piling up in git history.
 *   **Safe re-uploads:** the new copy is fully uploaded before the old one is removed, so a failed upload never loses your cloud save.
 *   **Progress bar:** uploads and downloads show a bar at the top of the menus with percent, speed and time left, plus a clear success or error message when they finish.
+*   **Same mods everywhere:** upload your mods and mod configs once, then install that setup on any other computer with the same Minecraft version. See [Mods & configs](#mods--configs).
 *   **Optional local backups:** zip a world into `.minecraft/savelogic-backups` every time you leave it.
 
 ## Setup
@@ -22,6 +23,23 @@ A Fabric mod for **Minecraft 26.3** that saves your singleplayer worlds to a **p
 3.  **In Minecraft:** on the title screen click the **☁** button next to Singleplayer, then **Settings**. Paste the repository URL and the token, press **Test Connection**, then **Done**.
 
 Each world appears on your repository's **Releases** page as its own release, named after the world, with when it was last saved and its size. Don't delete those releases or their files; that is where your worlds live.
+
+## Mods & configs
+
+Keep the same mods and settings on every computer:
+
+1.  On the computer with your setup: **☁ > Upload My Mods & Configs**. This uploads every `.jar` in your `mods` folder and everything in your `config` folder.
+2.  On another computer (with the same Minecraft version, Fabric Loader and SaveLogic installed): **☁ > Install Mods & Configs from Cloud**, then close Minecraft when asked.
+3.  Start Minecraft again. Your mods and configs now match.
+
+Good to know:
+
+*   A running game can't replace its own mods, so the install finishes **after Minecraft closes**. A small helper waits for the game to exit, then swaps the files and writes `logs/savelogic-setup-install.log`.
+*   Your current mods are moved, and any configs that get replaced are copied, to `savelogic-backups/setup-before-<date>` first. To undo, copy them back.
+*   Mods that aren't in the setup are removed from `mods`; config files that aren't in the setup are left alone.
+*   SaveLogic's own jar and its token files (`config/savelogic.json`, `config/savelogic.key`) are never uploaded or replaced.
+*   Setups are stored per Minecraft version (one release per version), so a setup made on 26.3 only installs on 26.3.
+*   Some mods keep personal data in their config files. The saves repository is private, but keep that in mind before sharing it.
 
 ## Build
 

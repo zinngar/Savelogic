@@ -32,6 +32,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Flow;
 import java.util.concurrent.atomic.AtomicLong;
@@ -46,12 +47,16 @@ import java.util.regex.Pattern;
  * the space. Worlds are split into parts of {@link #PART_SIZE} so any size fits. Each upload is named
  * {@code <world key>.<timestamp>.<part>-of-<count>.zip}; the new upload is completed before the previous one
  * is deleted, so a failed upload never removes the existing cloud copy.
+ * <p>
+ * A "setup" (the mods and config folders) is stored the same way in a release tagged
+ * {@code savelogicsetup-<Minecraft version>}, which deliberately does not start with the world prefix.
  */
 public class GitHubStorageProvider {
 
     private static final String TAG_PREFIX = "savelogic-";
     /** Early 2.0.0 builds kept every world in one shared release with this tag; it is still read and cleaned up. */
     private static final String SHARED_RELEASE_TAG = "savelogic-saves";
+    private static final String SETUP_TAG_PREFIX = "savelogicsetup-";
     public static final long PART_SIZE = 1024L * 1024 * 1024; // 1 GB, well under GitHub's 2 GB asset limit
 
     private static final Pattern ASSET_NAME = Pattern.compile("^(.+)\\.(\\d{14})\\.(\\d+)-of-(\\d+)\\.zip$");
@@ -98,8 +103,6 @@ public class GitHubStorageProvider {
             try {
                 String key = worldKey(worldName);
                 String tag = TAG_PREFIX + key;
-                String stamp = LocalDateTime.now().format(STAMP);
-
                 List<Path> parts = splitIfNeeded(zipFile, tempParts);
                 List<Release> releases = listSaveReleases();
                 List<Asset> previous = releases.stream()
@@ -107,33 +110,110 @@ public class GitHubStorageProvider {
                         .filter(asset -> worldKeyOf(asset.name()).equals(key))
                         .toList();
                 Long existing = releases.stream().filter(r -> r.tag().equals(tag)).findFirst().map(Release::id).orElse(null);
-                long release = existing != null ? existing : createRelease(tag, worldName);
+                long release = existing != null ? existing : createRelease(tag, worldName, "Minecraft world uploaded by SaveLogic.");
 
-                for (int i = 0; i < parts.size(); i++) {
-                    Path part = parts.get(i);
-                    progress.phase(parts.size() > 1 ? "Uploading part " + (i + 1) + " of " + parts.size() : "Uploading", Files.size(part));
-                    String name = key + "." + stamp + "." + (i + 1) + "-of-" + parts.size() + ".zip";
-                    uploadAsset(release, name, worldName, part, progress);
-                }
-                progress.phase("Finishing up", 0);
-
-                for (Asset asset : previous) {
-                    deleteAsset(asset.id());
-                }
-                describeRelease(release, worldName, Files.size(zipFile), parts.size());
+                uploadParts(release, key, worldName, parts, previous, progress);
+                describeRelease(release, worldName, "Minecraft world **" + worldName + "**, uploaded by SaveLogic.\n\n"
+                        + lastSavedLine(Files.size(zipFile), parts.size())
+                        + "\n\nDon't edit or delete the attached files; load this world from Cloud Saves in Minecraft.");
                 removeEmptySharedRelease(releases, previous);
                 SaveLogic.LOGGER.info("Uploaded {} to GitHub in {} part(s)", worldName, parts.size());
             } catch (IOException | InterruptedException e) {
                 throw new RuntimeException(e.getMessage(), e);
             } finally {
-                for (Path part : tempParts) {
-                    try {
-                        Files.deleteIfExists(part);
-                    } catch (IOException ignored) {
-                    }
-                }
+                deleteAll(tempParts);
             }
         });
+    }
+
+    // --- Setups (mods and configs) ---
+
+    /** The newest complete setup uploaded for this Minecraft version, if any. */
+    public CompletableFuture<Optional<CloudSave>> findSetup(String minecraftVersion) {
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+                Release release = findReleaseByTag(setupTag(minecraftVersion));
+                if (release == null) {
+                    return Optional.empty();
+                }
+                return groupSaves(release.assets()).stream().findFirst();
+            } catch (IOException | InterruptedException e) {
+                throw new RuntimeException(e.getMessage(), e);
+            }
+        });
+    }
+
+    /** Uploads a setup zip for this Minecraft version, replacing the previous one once the upload succeeds. */
+    public CompletableFuture<Void> uploadSetup(String minecraftVersion, Path zipFile, String notes, Progress progress) {
+        return CompletableFuture.runAsync(() -> {
+            List<Path> tempParts = new ArrayList<>();
+            try {
+                String tag = setupTag(minecraftVersion);
+                String name = setupName(minecraftVersion);
+                List<Path> parts = splitIfNeeded(zipFile, tempParts);
+                Release existing = findReleaseByTag(tag);
+                long release = existing != null ? existing.id() : createRelease(tag, name, "Mods and configs uploaded by SaveLogic.");
+                List<Asset> previous = existing != null ? existing.assets() : List.of();
+
+                uploadParts(release, setupKey(minecraftVersion), name, parts, previous, progress);
+                describeRelease(release, name, "Mods and configs for **Minecraft " + minecraftVersion + "**, uploaded by SaveLogic.\n\n"
+                        + lastSavedLine(Files.size(zipFile), parts.size()) + "\n\n" + notes
+                        + "\n\nDon't edit or delete the attached files; install this setup from Cloud Saves in Minecraft.");
+                SaveLogic.LOGGER.info("Uploaded setup for Minecraft {} in {} part(s)", minecraftVersion, parts.size());
+            } catch (IOException | InterruptedException e) {
+                throw new RuntimeException(e.getMessage(), e);
+            } finally {
+                deleteAll(tempParts);
+            }
+        });
+    }
+
+    public static String setupName(String minecraftVersion) {
+        return "Mods & configs (Minecraft " + minecraftVersion + ")";
+    }
+
+    private static String setupTag(String minecraftVersion) {
+        return SETUP_TAG_PREFIX + safeName(minecraftVersion);
+    }
+
+    private static String setupKey(String minecraftVersion) {
+        return "setup_" + safeName(minecraftVersion);
+    }
+
+    private static String safeName(String value) {
+        return value.replaceAll("[^A-Za-z0-9_-]", "_");
+    }
+
+    // --- Shared upload steps ---
+
+    /** Uploads the parts as a new copy, then deletes the previous copy, so a failed upload keeps the old one. */
+    private void uploadParts(long release, String key, String label, List<Path> parts, List<Asset> previous, Progress progress)
+            throws IOException, InterruptedException {
+        String stamp = LocalDateTime.now().format(STAMP);
+        for (int i = 0; i < parts.size(); i++) {
+            Path part = parts.get(i);
+            progress.phase(parts.size() > 1 ? "Uploading part " + (i + 1) + " of " + parts.size() : "Uploading", Files.size(part));
+            String name = key + "." + stamp + "." + (i + 1) + "-of-" + parts.size() + ".zip";
+            uploadAsset(release, name, label, part, progress);
+        }
+        progress.phase("Finishing up", 0);
+        for (Asset asset : previous) {
+            deleteAsset(asset.id());
+        }
+    }
+
+    private static String lastSavedLine(long size, int partCount) {
+        return "Last saved: " + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")) + "  \n"
+                + "Size: " + String.format("%.1f MB", size / (1024.0 * 1024)) + (partCount > 1 ? " in " + partCount + " parts" : "");
+    }
+
+    private static void deleteAll(List<Path> files) {
+        for (Path file : files) {
+            try {
+                Files.deleteIfExists(file);
+            } catch (IOException ignored) {
+            }
+        }
     }
 
     /** Downloads every part of a save and joins them into a single zip at target. */
@@ -242,11 +322,26 @@ public class GitHubStorageProvider {
         }
     }
 
-    private long createRelease(String tag, String worldName) throws IOException, InterruptedException {
+    private Release findReleaseByTag(String tag) throws IOException, InterruptedException {
+        HttpResponse<String> response = send(api("/releases/tags/" + encode(tag)).GET());
+        if (response.statusCode() == 404) {
+            if (send(api("").GET()).statusCode() == 200) {
+                return null; // Repository is fine; this release just doesn't exist yet.
+            }
+            throw new IOException(describeError("open repository", response));
+        }
+        if (response.statusCode() != 200) {
+            throw new IOException(describeError("find release", response));
+        }
+        long id = GSON.fromJson(response.body(), JsonObject.class).get("id").getAsLong();
+        return new Release(id, tag, listAssets(id));
+    }
+
+    private long createRelease(String tag, String name, String description) throws IOException, InterruptedException {
         JsonObject body = new JsonObject();
         body.addProperty("tag_name", tag);
-        body.addProperty("name", worldName);
-        body.addProperty("body", "Minecraft world uploaded by SaveLogic.");
+        body.addProperty("name", name);
+        body.addProperty("body", description);
         body.addProperty("make_latest", "false");
 
         HttpResponse<String> response = send(api("/releases").POST(jsonBody(body)));
@@ -255,19 +350,16 @@ public class GitHubStorageProvider {
             response = send(api("/releases").POST(jsonBody(body)));
         }
         if (response.statusCode() != 201) {
-            throw new IOException(describeError("create a release for " + worldName, response));
+            throw new IOException(describeError("create a release for " + name, response));
         }
         return GSON.fromJson(response.body(), JsonObject.class).get("id").getAsLong();
     }
 
     /** Keeps the release's name and notes in sync with the latest upload, for the repository's Releases page. */
-    private void describeRelease(long releaseId, String worldName, long size, int partCount) throws IOException, InterruptedException {
+    private void describeRelease(long releaseId, String name, String description) throws IOException, InterruptedException {
         JsonObject body = new JsonObject();
-        body.addProperty("name", worldName);
-        body.addProperty("body", "Minecraft world **" + worldName + "**, uploaded by SaveLogic.\n\n"
-                + "Last saved: " + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")) + "  \n"
-                + "Size: " + String.format("%.1f MB", size / (1024.0 * 1024)) + (partCount > 1 ? " in " + partCount + " parts" : "")
-                + "\n\nDon't edit or delete the attached files; load this world from Cloud Saves in Minecraft.");
+        body.addProperty("name", name);
+        body.addProperty("body", description);
         HttpResponse<String> response = send(api("/releases/" + releaseId).method("PATCH", jsonBody(body)));
         if (response.statusCode() != 200) {
             SaveLogic.LOGGER.warn("Could not update release notes: {}", describeError("update release", response));

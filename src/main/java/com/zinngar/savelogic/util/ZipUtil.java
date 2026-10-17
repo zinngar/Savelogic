@@ -6,7 +6,8 @@ import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
-import java.util.List;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.stream.Stream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
@@ -21,26 +22,29 @@ public class ZipUtil {
 
     /** Same as {@link #zipWorld(Path, Path)}, reporting how many bytes of world files have been read. */
     public static void zipWorld(Path worldDir, Path zipFile, Progress progress) throws IOException {
-        List<Path> files;
+        Map<String, Path> entries = new LinkedHashMap<>();
         try (Stream<Path> walk = Files.walk(worldDir)) {
-            files = walk.filter(Files::isRegularFile)
+            walk.filter(Files::isRegularFile)
                     .filter(path -> !path.getFileName().toString().equals("session.lock"))
-                    .toList();
+                    .forEach(path -> entries.put(entryName(worldDir, path), path));
         }
+        zipFiles(entries, zipFile, "Zipping world", progress);
+    }
+
+    /** Zips the given files, keyed by their name inside the zip. */
+    public static void zipFiles(Map<String, Path> entries, Path zipFile, String phase, Progress progress) throws IOException {
         long total = 0;
-        for (Path path : files) {
+        for (Path path : entries.values()) {
             total += Files.size(path);
         }
-        progress.phase("Zipping world", total);
+        progress.phase(phase, total);
         long done = 0;
         byte[] buffer = new byte[1 << 16];
         try (OutputStream out = Files.newOutputStream(zipFile);
              ZipOutputStream zos = new ZipOutputStream(out)) {
-            for (Path path : files) {
-                // Zip entries must use '/' so worlds zipped on Windows unzip correctly elsewhere.
-                String name = worldDir.relativize(path).toString().replace('\\', '/');
-                zos.putNextEntry(new ZipEntry(name));
-                try (InputStream in = Files.newInputStream(path)) {
+            for (Map.Entry<String, Path> entry : entries.entrySet()) {
+                zos.putNextEntry(new ZipEntry(entry.getKey()));
+                try (InputStream in = Files.newInputStream(entry.getValue())) {
                     int read;
                     while ((read = in.read(buffer)) > 0) {
                         zos.write(buffer, 0, read);
@@ -51,6 +55,11 @@ public class ZipUtil {
                 zos.closeEntry();
             }
         }
+    }
+
+    /** The zip entry name for a file under root. Zip entries must use '/' so Windows zips unzip correctly elsewhere. */
+    public static String entryName(Path root, Path file) {
+        return root.relativize(file).toString().replace('\\', '/');
     }
 
     /** Extracts zipFile into destDir, refusing entries that would escape it. */

@@ -20,6 +20,7 @@ public class SaveLogicClient implements ClientModInitializer {
     public void onInitializeClient() {
         SaveLogic.CONFIG = Config.load();
         TransferStatus.register();
+        SetupSync.register();
 
         // Runs after the singleplayer server has saved and closed the world, so the files are complete.
         ServerLifecycleEvents.SERVER_STOPPED.register(server -> {
