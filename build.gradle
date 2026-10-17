@@ -47,3 +47,13 @@ java {
     sourceCompatibility = JavaVersion.VERSION_25
     targetCompatibility = JavaVersion.VERSION_25
 }
+
+// Screenshot tests for the mod's menus: ./gradlew runClientGameTest (not part of the mod jar).
+fabricApi {
+    configureTests {
+        createSourceSet = true
+        modId = "savelogic-gametest"
+        enableGameTests = false
+        enableClientGameTests = true
+    }
+}

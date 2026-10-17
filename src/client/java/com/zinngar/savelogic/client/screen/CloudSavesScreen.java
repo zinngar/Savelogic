@@ -2,6 +2,7 @@ package com.zinngar.savelogic.client.screen;
 
 import com.zinngar.savelogic.client.CloudStorageManager;
 import com.zinngar.savelogic.client.SaveLogicClient;
+import com.zinngar.savelogic.client.TransferStatus;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
@@ -36,8 +37,10 @@ public class CloudSavesScreen extends Screen {
                 button -> this.minecraft.gui.setScreen(new SaveLogicSelectionScreen(this)))
                 .bounds(this.width / 2 - 100, top + 24, 200, 20).build());
 
-        saveButton.active = configured;
-        loadButton.active = configured;
+        // One transfer at a time; the progress bar at the top shows the one that is running.
+        boolean idle = !TransferStatus.INSTANCE.isActive();
+        saveButton.active = configured && idle;
+        loadButton.active = configured && idle;
 
         this.addRenderableWidget(Button.builder(Component.translatable("savelogic.menu.settings"),
                 button -> this.minecraft.gui.setScreen(new SettingsScreen(this)))
@@ -46,6 +49,19 @@ public class CloudSavesScreen extends Screen {
         this.addRenderableWidget(Button.builder(Component.translatable("gui.back"), button -> this.onClose())
                 .bounds(this.width / 2 - 100, this.height - 30, 200, 20).build());
     }
+
+    @Override
+    public void tick() {
+        super.tick();
+        // Re-enable Save/Load as soon as a running transfer finishes.
+        boolean idle = !TransferStatus.INSTANCE.isActive();
+        if (idle != wasIdle) {
+            wasIdle = idle;
+            this.rebuildWidgets();
+        }
+    }
+
+    private boolean wasIdle = !TransferStatus.INSTANCE.isActive();
 
     @Override
     public void onClose() {

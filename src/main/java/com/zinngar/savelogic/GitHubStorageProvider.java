@@ -4,10 +4,12 @@ import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.zinngar.savelogic.util.Progress;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.ByteBuffer;
 import java.net.URI;
 import java.net.URLEncoder;
 import java.net.http.HttpClient;
@@ -31,7 +33,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
-import java.util.function.Consumer;
+import java.util.concurrent.Flow;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -89,7 +92,7 @@ public class GitHubStorageProvider {
     }
 
     /** Uploads a zipped world, replacing any previous cloud copy of the same world once the upload succeeds. */
-    public CompletableFuture<Void> uploadSave(String worldName, Path zipFile, Consumer<String> progress) {
+    public CompletableFuture<Void> uploadSave(String worldName, Path zipFile, Progress progress) {
         return CompletableFuture.runAsync(() -> {
             List<Path> tempParts = new ArrayList<>();
             try {
@@ -107,12 +110,12 @@ public class GitHubStorageProvider {
                 long release = existing != null ? existing : createRelease(tag, worldName);
 
                 for (int i = 0; i < parts.size(); i++) {
-                    if (parts.size() > 1) {
-                        progress.accept("Uploading part " + (i + 1) + " of " + parts.size());
-                    }
+                    Path part = parts.get(i);
+                    progress.phase(parts.size() > 1 ? "Uploading part " + (i + 1) + " of " + parts.size() : "Uploading", Files.size(part));
                     String name = key + "." + stamp + "." + (i + 1) + "-of-" + parts.size() + ".zip";
-                    uploadAsset(release, name, worldName, parts.get(i));
+                    uploadAsset(release, name, worldName, part, progress);
                 }
+                progress.phase("Finishing up", 0);
 
                 for (Asset asset : previous) {
                     deleteAsset(asset.id());
@@ -134,15 +137,22 @@ public class GitHubStorageProvider {
     }
 
     /** Downloads every part of a save and joins them into a single zip at target. */
-    public CompletableFuture<Void> downloadSave(CloudSave save, Path target, Consumer<String> progress) {
+    public CompletableFuture<Void> downloadSave(CloudSave save, Path target, Progress progress) {
         return CompletableFuture.runAsync(() -> {
             try (OutputStream out = Files.newOutputStream(target)) {
-                for (int i = 0; i < save.parts().size(); i++) {
-                    if (save.parts().size() > 1) {
-                        progress.accept("Downloading part " + (i + 1) + " of " + save.parts().size());
-                    }
-                    try (InputStream in = openAsset(save.parts().get(i).id())) {
-                        in.transferTo(out);
+                int count = save.parts().size();
+                byte[] buffer = new byte[1 << 16];
+                for (int i = 0; i < count; i++) {
+                    Asset part = save.parts().get(i);
+                    progress.phase(count > 1 ? "Downloading part " + (i + 1) + " of " + count : "Downloading", part.size());
+                    long done = 0;
+                    try (InputStream in = openAsset(part.id())) {
+                        int read;
+                        while ((read = in.read(buffer)) > 0) {
+                            out.write(buffer, 0, read);
+                            done += read;
+                            progress.bytes(done);
+                        }
                     }
                 }
             } catch (IOException | InterruptedException e) {
@@ -303,13 +313,13 @@ public class GitHubStorageProvider {
         }
     }
 
-    private void uploadAsset(long releaseId, String name, String label, Path file) throws IOException, InterruptedException {
+    private void uploadAsset(long releaseId, String name, String label, Path file, Progress progress) throws IOException, InterruptedException {
         URI uri = URI.create("https://uploads.github.com/repos/" + encode(owner) + "/" + encode(repo)
                 + "/releases/" + releaseId + "/assets?name=" + encode(name) + "&label=" + encode(label));
         HttpRequest.Builder request = authorized(HttpRequest.newBuilder(uri))
                 .timeout(TRANSFER_TIMEOUT)
                 .header("Content-Type", "application/zip")
-                .POST(HttpRequest.BodyPublishers.ofFile(file));
+                .POST(counting(HttpRequest.BodyPublishers.ofFile(file), progress));
         HttpResponse<String> response = send(request);
         if (response.statusCode() != 201) {
             throw new IOException(describeError("upload", response));
@@ -446,6 +456,30 @@ public class GitHubStorageProvider {
                 .header("Accept", "application/vnd.github+json")
                 .header("X-GitHub-Api-Version", "2022-11-28")
                 .header("User-Agent", "SaveLogic-Minecraft-Mod");
+    }
+
+    /** Wraps a body publisher so progress sees each chunk as the HTTP client takes it to send. */
+    private static HttpRequest.BodyPublisher counting(HttpRequest.BodyPublisher inner, Progress progress) {
+        return new HttpRequest.BodyPublisher() {
+            @Override
+            public long contentLength() {
+                return inner.contentLength();
+            }
+
+            @Override
+            public void subscribe(Flow.Subscriber<? super ByteBuffer> subscriber) {
+                AtomicLong sent = new AtomicLong();
+                inner.subscribe(new Flow.Subscriber<ByteBuffer>() {
+                    @Override public void onSubscribe(Flow.Subscription subscription) { subscriber.onSubscribe(subscription); }
+                    @Override public void onNext(ByteBuffer item) {
+                        progress.bytes(sent.addAndGet(item.remaining()));
+                        subscriber.onNext(item);
+                    }
+                    @Override public void onError(Throwable throwable) { subscriber.onError(throwable); }
+                    @Override public void onComplete() { subscriber.onComplete(); }
+                });
+            }
+        };
     }
 
     private static HttpRequest.BodyPublisher jsonBody(JsonObject json) {

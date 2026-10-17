@@ -13,7 +13,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.function.Consumer;
 
-/** Zips/uploads and downloads/unzips worlds, reporting the result with toasts. */
+/** Zips/uploads and downloads/unzips worlds, showing progress with {@link TransferStatus} and the result with a toast. */
 public class CloudSync {
 
     public static void uploadWorld(String worldFolder) {
@@ -28,24 +28,36 @@ public class CloudSync {
             toast("Cloud save failed", "World folder not found: " + worldFolder);
             return;
         }
+        TransferStatus status = TransferStatus.INSTANCE;
+        if (!status.begin("Saving \"" + worldFolder + "\" to cloud")) {
+            toast("Cloud save not started", "Wait for the current upload or download to finish.");
+            return;
+        }
 
-        toast("Uploading " + worldFolder, "This can take a minute for big worlds...");
-        CompletableFuture.supplyAsync(() -> {
+        Path tempDir;
+        try {
+            tempDir = Files.createTempDirectory("savelogic-upload");
+        } catch (Exception e) {
+            status.fail("Could not create a temporary folder: " + e.getMessage());
+            return;
+        }
+        Path zip = tempDir.resolve(worldFolder + ".zip");
+        CompletableFuture.runAsync(() -> {
             try {
-                Path tempDir = Files.createTempDirectory("savelogic-upload");
-                Path zip = tempDir.resolve(worldFolder + ".zip");
-                ZipUtil.zipWorld(worldDir, zip);
-                return zip;
+                ZipUtil.zipWorld(worldDir, zip, status);
             } catch (Exception e) {
                 throw new RuntimeException("Could not zip world: " + e.getMessage(), e);
             }
-        }).thenCompose(zip -> provider.uploadSave(worldFolder, zip, step -> toast("Uploading " + worldFolder, step))
-                .whenComplete((ignored, error) -> deleteQuietly(zip)))
+        }).thenCompose(ignored -> provider.uploadSave(worldFolder, zip, status))
           .whenComplete((ignored, error) -> {
+              deleteQuietly(zip);
+              deleteQuietly(tempDir);
               if (error == null) {
+                  status.succeed("Done! \"" + worldFolder + "\" is saved on GitHub.");
                   toast("Saved to cloud", worldFolder + " was uploaded to GitHub.");
               } else {
                   SaveLogic.LOGGER.error("Cloud upload of {} failed", worldFolder, error);
+                  status.fail("Failed: " + rootMessage(error));
                   toast("Cloud save failed", rootMessage(error));
               }
           });
@@ -65,15 +77,22 @@ public class CloudSync {
         Path savesDir = minecraft.getLevelSource().getBaseDir();
         // The name comes from the repository, so strip anything that could leave the saves folder.
         String baseName = save.worldName().replaceAll("[\\\\/:*?\"<>|]", "_").replaceFirst("^\\.+", "_");
+        TransferStatus status = TransferStatus.INSTANCE;
+        if (!status.begin("Loading \"" + baseName + "\" from cloud")) {
+            onError.accept("Wait for the current upload or download to finish.");
+            return;
+        }
         Path zip;
         try {
             zip = Files.createTempFile("savelogic-download", ".zip");
         } catch (Exception e) {
+            status.fail("Could not create a temporary file: " + e.getMessage());
             onError.accept("Could not create a temporary file: " + e.getMessage());
             return;
         }
 
-        provider.downloadSave(save, zip, step -> toast("Downloading " + baseName, step)).thenApply(ignored -> {
+        provider.downloadSave(save, zip, status).thenApply(ignored -> {
+            status.phase("Unzipping", 0);
             try {
                 String folder = baseName;
                 for (int i = 2; Files.exists(savesDir.resolve(folder)); i++) {
@@ -87,10 +106,12 @@ public class CloudSync {
         }).whenComplete((folder, error) -> minecraft.execute(() -> {
             deleteQuietly(zip);
             if (error == null) {
+                status.succeed("Done! Downloaded as world \"" + folder + "\".");
                 toast("Loaded from cloud", "Downloaded as world folder \"" + folder + "\".");
                 onSuccess.run();
             } else {
                 SaveLogic.LOGGER.error("Cloud download of {} failed", baseName, error);
+                status.fail("Failed: " + rootMessage(error));
                 onError.accept(rootMessage(error));
             }
         }));

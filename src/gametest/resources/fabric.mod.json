@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "id": "savelogic-gametest",
+  "version": "1.0.0",
+  "name": "SaveLogic screenshot tests",
+  "environment": "client",
+  "entrypoints": {
+    "fabric-client-gametest": [
+      "com.zinngar.savelogic.gametest.MenuScreenshotTest"
+    ]
+  },
+  "depends": {
+    "savelogic": "*"
+  }
+}

@@ -16,19 +16,38 @@ public class ZipUtil {
 
     /** Zips the contents of worldDir (without a top-level folder) into zipFile. */
     public static void zipWorld(Path worldDir, Path zipFile) throws IOException {
+        zipWorld(worldDir, zipFile, Progress.NONE);
+    }
+
+    /** Same as {@link #zipWorld(Path, Path)}, reporting how many bytes of world files have been read. */
+    public static void zipWorld(Path worldDir, Path zipFile, Progress progress) throws IOException {
         List<Path> files;
         try (Stream<Path> walk = Files.walk(worldDir)) {
             files = walk.filter(Files::isRegularFile)
                     .filter(path -> !path.getFileName().toString().equals("session.lock"))
                     .toList();
         }
+        long total = 0;
+        for (Path path : files) {
+            total += Files.size(path);
+        }
+        progress.phase("Zipping world", total);
+        long done = 0;
+        byte[] buffer = new byte[1 << 16];
         try (OutputStream out = Files.newOutputStream(zipFile);
              ZipOutputStream zos = new ZipOutputStream(out)) {
             for (Path path : files) {
                 // Zip entries must use '/' so worlds zipped on Windows unzip correctly elsewhere.
                 String name = worldDir.relativize(path).toString().replace('\\', '/');
                 zos.putNextEntry(new ZipEntry(name));
-                Files.copy(path, zos);
+                try (InputStream in = Files.newInputStream(path)) {
+                    int read;
+                    while ((read = in.read(buffer)) > 0) {
+                        zos.write(buffer, 0, read);
+                        done += read;
+                        progress.bytes(done);
+                    }
+                }
                 zos.closeEntry();
             }
         }

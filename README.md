@@ -8,6 +8,7 @@ A Fabric mod for **Minecraft 26.3** that saves your singleplayer worlds to a **p
 *   **Load from cloud:** download a world into your saves folder. Existing local worlds are never overwritten; a download that would clash gets a name like `My World (2)`.
 *   **Big worlds:** each world is stored as its own GitHub *release* and split into 1 GB parts, so there is no practical size limit, and old copies are deleted rather than piling up in git history.
 *   **Safe re-uploads:** the new copy is fully uploaded before the old one is removed, so a failed upload never loses your cloud save.
+*   **Progress bar:** uploads and downloads show a bar at the top of the menus with percent, speed and time left, plus a clear success or error message when they finish.
 *   **Optional local backups:** zip a world into `.minecraft/savelogic-backups` every time you leave it.
 
 ## Setup
@@ -18,7 +19,7 @@ A Fabric mod for **Minecraft 26.3** that saves your singleplayer worlds to a **p
     *   Under **Repository access**, choose **Only select repositories** and pick your saves repository.
     *   Under **Permissions**, set **Contents** to **Read and write**. That is the only permission needed.
     *   Generate the token and copy it.
-3.  **In Minecraft:** title screen > **Cloud Saves** > **Settings**. Paste the repository URL and the token, press **Test Connection**, then **Done**.
+3.  **In Minecraft:** on the title screen click the **☁** button next to Singleplayer, then **Settings**. Paste the repository URL and the token, press **Test Connection**, then **Done**.
 
 Each world appears on your repository's **Releases** page as its own release, named after the world, with when it was last saved and its size. Don't delete those releases or their files; that is where your worlds live.
 
