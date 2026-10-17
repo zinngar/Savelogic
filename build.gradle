@@ -2,7 +2,8 @@ plugins {
     id 'net.fabricmc.fabric-loom' version "${loom_version}"
 }
 
-version = project.mod_version
+// "2.0.0+26.3": the mod's own version, plus (as semver build metadata) the Minecraft version it is built for.
+version = "${project.mod_version}+${project.minecraft_version}"
 group = project.maven_group
 
 base {

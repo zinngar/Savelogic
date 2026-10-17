@@ -68,7 +68,7 @@ Requires a JDK 25 or newer.
 ./gradlew build
 ```
 
-The mod jar is written to `build/libs/`. Install it together with Fabric Loader 0.19.5+ and Fabric API for 26.3.
+The mod jar is written to `build/libs/`, named with the mod version and the Minecraft version it's for, e.g. `savelogic-2.0.0+26.3.jar`. Install it together with Fabric Loader 0.19.5+ and Fabric API for 26.3.
 
 ## Support
 
