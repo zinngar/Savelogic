@@ -56,7 +56,11 @@ public final class SetupSync {
     }
 
     public static boolean isInstallPending() {
-        return Files.isDirectory(gameDir().resolve(SetupInstaller.PENDING_DIR).resolve("mods"));
+        try {
+            return SetupInstaller.hasMods(gameDir().resolve(SetupInstaller.PENDING_DIR));
+        } catch (Exception e) {
+            return false;
+        }
     }
 
     public static void cancelPendingInstall() {
@@ -203,7 +207,10 @@ public final class SetupSync {
             try {
                 SetupInstaller.deleteRecursively(pending);
                 ZipUtil.unzip(zip, pending);
-                Files.createDirectories(pending.resolve("mods"));
+                if (!SetupInstaller.hasMods(pending)) {
+                    SetupInstaller.deleteRecursively(pending);
+                    throw new RuntimeException("The downloaded setup contains no mods");
+                }
             } catch (Exception e) {
                 throw new RuntimeException("Could not unpack setup: " + e.getMessage(), e);
             }

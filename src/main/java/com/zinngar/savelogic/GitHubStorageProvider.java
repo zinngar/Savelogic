@@ -234,6 +234,9 @@ public class GitHubStorageProvider {
                             progress.bytes(done);
                         }
                     }
+                    if (done != part.size()) {
+                        throw new IOException("Download was incomplete: got " + done + " of " + part.size() + " bytes");
+                    }
                 }
             } catch (IOException | InterruptedException e) {
                 throw new RuntimeException(e.getMessage(), e);
@@ -427,7 +430,9 @@ public class GitHubStorageProvider {
 
     private InputStream openAsset(long assetId) throws IOException, InterruptedException {
         HttpRequest request = api("/releases/assets/" + assetId)
-                .header("Accept", "application/octet-stream")
+                // setHeader, not header: the default Accept would otherwise also be sent, and GitHub then
+                // returns the asset's JSON description instead of the file.
+                .setHeader("Accept", "application/octet-stream")
                 .timeout(TRANSFER_TIMEOUT)
                 .GET().build();
         HttpResponse<InputStream> response = HTTP.send(request, HttpResponse.BodyHandlers.ofInputStream());

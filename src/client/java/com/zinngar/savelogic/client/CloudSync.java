@@ -2,6 +2,7 @@ package com.zinngar.savelogic.client;
 
 import com.zinngar.savelogic.GitHubStorageProvider;
 import com.zinngar.savelogic.SaveLogic;
+import com.zinngar.savelogic.setup.SetupInstaller;
 import com.zinngar.savelogic.util.ZipUtil;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.toasts.SystemToast;
@@ -98,7 +99,12 @@ public class CloudSync {
                 for (int i = 2; Files.exists(savesDir.resolve(folder)); i++) {
                     folder = baseName + " (" + i + ")";
                 }
-                ZipUtil.unzip(zip, savesDir.resolve(folder));
+                Path worldDir = savesDir.resolve(folder);
+                ZipUtil.unzip(zip, worldDir);
+                if (!Files.exists(worldDir.resolve("level.dat"))) {
+                    SetupInstaller.deleteRecursively(worldDir);
+                    throw new RuntimeException("The downloaded file is not a Minecraft world (no level.dat)");
+                }
                 return folder;
             } catch (Exception e) {
                 throw new RuntimeException("Could not unzip world: " + e.getMessage(), e);

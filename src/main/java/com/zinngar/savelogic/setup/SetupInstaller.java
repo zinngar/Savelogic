@@ -58,7 +58,10 @@ public final class SetupInstaller {
      */
     public static Path install(Path gameDir, Set<String> keep, PrintStream out) throws IOException, InterruptedException {
         Path pending = gameDir.resolve(PENDING_DIR);
-        if (!Files.isDirectory(pending.resolve("mods"))) {
+        if (!hasMods(pending)) {
+            // Never strip the mods folder for a setup with nothing in it.
+            out.println("The pending setup has no mods; nothing was changed.");
+            deleteRecursively(pending);
             return null;
         }
         Path mods = gameDir.resolve("mods");
@@ -108,6 +111,11 @@ public final class SetupInstaller {
 
         deleteRecursively(pending);
         return backup;
+    }
+
+    /** True if dir/mods contains at least one jar, i.e. dir holds a usable setup. */
+    public static boolean hasMods(Path dir) throws IOException {
+        return !jars(dir.resolve("mods")).isEmpty();
     }
 
     private static List<Path> jars(Path dir) throws IOException {
