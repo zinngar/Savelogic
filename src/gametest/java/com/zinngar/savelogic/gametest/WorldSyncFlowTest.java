@@ -26,8 +26,8 @@ import java.nio.file.Path;
 import java.util.List;
 
 /**
- * Two computers sharing a world, run against a local fake GitHub (start it and set SAVELOGIC_FAKE_GITHUB to its
- * URL; the test is skipped otherwise). "This" computer is the MacBook; the Gaming PC is simulated by calling the
+ * Two computers sharing a world, run against an in-memory {@link FakeGitHub} so no real account is touched.
+ * "This" computer is the MacBook; the Gaming PC is simulated by calling the
  * GitHub client directly with its own device id.
  */
 public class WorldSyncFlowTest implements FabricClientGameTest {
@@ -36,11 +36,17 @@ public class WorldSyncFlowTest implements FabricClientGameTest {
 
     @Override
     public void runTest(ClientGameTestContext context) {
-        String fake = System.getenv("SAVELOGIC_FAKE_GITHUB");
-        if (fake == null) {
-            return;
+        try (FakeGitHub fake = new FakeGitHub()) {
+            System.setProperty("savelogic.testApiBase", fake.baseUrl());
+            runFlow(context);
+        } catch (java.io.IOException e) {
+            throw new AssertionError(e);
+        } finally {
+            System.clearProperty("savelogic.testApiBase");
         }
-        System.setProperty("savelogic.testApiBase", fake);
+    }
+
+    private void runFlow(ClientGameTestContext context) {
         context.runOnClient(mc -> {
             SaveLogic.CONFIG.github.repositoryUrl = "o/r";
             SaveLogic.CONFIG.github.personalAccessToken = "good-token";

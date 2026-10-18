@@ -60,6 +60,18 @@ Good to know:
 *   Setups are stored per Minecraft version (one release per version), so a setup made on 26.3 only installs on 26.3.
 *   Some mods keep personal data in their config files. The saves repository is private, but keep that in mind before sharing it.
 
+## Minecraft versions
+
+Each Minecraft version has its own branch, and releases are numbered `<mod version>+<Minecraft version>`:
+
+| Minecraft | Branch | Mod version | Java |
+|---|---|---|---|
+| 26.3 | [`26.3`](https://github.com/zinngar/Savelogic/tree/26.3) | 2.0.0+26.3 | 25 |
+| 1.21.11 | [`1.21.11`](https://github.com/zinngar/Savelogic/tree/1.21.11) | 2.0.0+1.21.11 | 21 |
+| 1.21.10 | [`1.21.10`](https://github.com/zinngar/Savelogic/tree/1.21.10) | 0.1.x (old version, not maintained) | 21 |
+
+Worlds and mods & configs can be shared between computers on the same Minecraft version. A world saved on a newer Minecraft version won't open on an older one.
+
 ## Build
 
 Requires a JDK 25 or newer.
