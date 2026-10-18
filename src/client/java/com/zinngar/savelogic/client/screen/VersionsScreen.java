@@ -6,7 +6,7 @@ import com.zinngar.savelogic.SaveLogic;
 import com.zinngar.savelogic.client.CloudSync;
 import com.zinngar.savelogic.client.CloudText;
 import com.zinngar.savelogic.client.TransferStatus;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
@@ -34,7 +34,7 @@ public class VersionsScreen extends Screen {
             String label = (i == 0 ? "Latest: " : "") + CloudText.when(version.uploaded()) + "  ·  "
                     + CloudText.device(version.device()) + "  (" + CloudText.size(version.size()) + ")";
             Button button = this.addRenderableWidget(Button.builder(Component.literal(label),
-                            b -> CloudSync.downloadWorld(world, version, this, folder -> this.minecraft.gui.setScreen(parent)))
+                            b -> CloudSync.downloadWorld(world, version, this, folder -> this.minecraft.setScreen(parent)))
                     .bounds(this.width / 2 - 140, y, 280, 20).build());
             button.active = idle;
             y += 24;
@@ -55,14 +55,14 @@ public class VersionsScreen extends Screen {
 
     @Override
     public void onClose() {
-        this.minecraft.gui.setScreen(parent);
+        this.minecraft.setScreen(parent);
     }
 
     @Override
-    public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
-        super.extractRenderState(graphics, mouseX, mouseY, delta);
-        graphics.centeredText(this.font, this.title, this.width / 2, 15, 0xFFFFFFFF);
-        graphics.centeredText(this.font, Component.literal("Click a version to download it. Keeping the newest "
+    public void render(GuiGraphics graphics, int mouseX, int mouseY, float delta) {
+        super.render(graphics, mouseX, mouseY, delta);
+        graphics.drawCenteredString(this.font, this.title, this.width / 2, 15, 0xFFFFFFFF);
+        graphics.drawCenteredString(this.font, Component.literal("Click a version to download it. Keeping the newest "
                 + SaveLogic.CONFIG.keepVersions + "."), this.width / 2, 30, 0xFFA0A0A0);
     }
 }

@@ -72,8 +72,8 @@ public final class SyncGate {
         }
         Minecraft minecraft = Minecraft.getInstance();
         String cloudName = marker.get().cloudName();
-        SyncCheckScreen checking = new SyncCheckScreen(cloudName, () -> minecraft.gui.setScreen(listScreen));
-        minecraft.gui.setScreen(checking);
+        SyncCheckScreen checking = new SyncCheckScreen(cloudName, () -> minecraft.setScreen(listScreen));
+        minecraft.setScreen(checking);
 
         provider.listWorlds().whenComplete((worlds, error) -> minecraft.execute(() -> {
             if (checking.isCancelled()) {
@@ -101,14 +101,14 @@ public final class SyncGate {
             return;
         }
         Minecraft minecraft = Minecraft.getInstance();
-        minecraft.gui.setScreen(new ChoiceScreen(
+        minecraft.setScreen(new ChoiceScreen(
                 Component.literal("\"" + world.worldName() + "\" is open on " + CloudText.device(lock.device())),
                 Component.literal("It has been open there since " + CloudText.when(Instant.ofEpochMilli(lock.since()))
                         + ". If you play here at the same time, progress on one of the computers can be lost. "
                         + "If that computer crashed or was switched off while playing, it's safe to continue."),
                 List.of(
                         new Choice(Component.literal("Play anyway"), () -> checkNewer(world, marker, levelId, listScreen)),
-                        new Choice(Component.translatable("gui.cancel"), () -> minecraft.gui.setScreen(listScreen)))));
+                        new Choice(Component.translatable("gui.cancel"), () -> minecraft.setScreen(listScreen)))));
     }
 
     private static void checkNewer(CloudWorld world, WorldSyncMarker marker, String levelId, Screen listScreen) {
@@ -118,18 +118,18 @@ public final class SyncGate {
             return;
         }
         Minecraft minecraft = Minecraft.getInstance();
-        minecraft.gui.setScreen(new ChoiceScreen(Component.literal("Newer version in the cloud"),
+        minecraft.setScreen(new ChoiceScreen(Component.literal("Newer version in the cloud"),
                 Component.literal(CloudText.device(newest.device()) + " saved \"" + world.worldName() + "\" "
                         + CloudText.when(newest.uploaded()) + ", after your copy was last synced. "
                         + "Downloading it backs up your copy first."),
                 List.of(
                         new Choice(Component.literal("Download it and play"), () -> {
-                            minecraft.gui.setScreen(listScreen);
+                            minecraft.setScreen(listScreen);
                             CloudSync.downloadReplacing(world, newest, levelId,
                                     folder -> open(folder, world.worldName(), listScreen, true));
                         }),
                         new Choice(Component.literal("Play my copy"), () -> open(levelId, world.worldName(), listScreen, true)),
-                        new Choice(Component.translatable("gui.cancel"), () -> minecraft.gui.setScreen(listScreen)))));
+                        new Choice(Component.translatable("gui.cancel"), () -> minecraft.setScreen(listScreen)))));
     }
 
     /** Opens the world the same way the world list does, first marking it as open on this computer. */
@@ -142,6 +142,6 @@ public final class SyncGate {
             });
         }
         Minecraft minecraft = Minecraft.getInstance();
-        minecraft.createWorldOpenFlows().openWorld(levelId, () -> minecraft.gui.setScreen(listScreen));
+        minecraft.createWorldOpenFlows().openWorld(levelId, () -> minecraft.setScreen(listScreen));
     }
 }

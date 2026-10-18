@@ -28,7 +28,7 @@ public abstract class WorldListWidgetEntryMixin {
             ci.cancel();
             SaveLogicClient.uploadPickerScreen = null;
             Screen returnTo = SaveLogicClient.uploadReturnScreen;
-            Minecraft.getInstance().gui.setScreen(returnTo);
+            Minecraft.getInstance().setScreen(returnTo);
             CloudSync.uploadWorld(this.summary.getLevelId(), false, returnTo);
             return;
         }

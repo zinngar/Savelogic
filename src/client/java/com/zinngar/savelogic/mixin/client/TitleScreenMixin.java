@@ -39,7 +39,7 @@ public abstract class TitleScreenMixin extends Screen {
         }
 
         Component label = Component.translatable("savelogic.menu.cloud_saves");
-        Button cloud = Button.builder(Component.literal("☁"), button -> this.minecraft.gui.setScreen(new CloudSavesScreen(this)))
+        Button cloud = Button.builder(Component.literal("☁"), button -> this.minecraft.setScreen(new CloudSavesScreen(this)))
                 .bounds(x - 24, y, 20, 20)
                 .tooltip(Tooltip.create(label))
                 .createNarration(narration -> label.copy())

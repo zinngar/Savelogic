@@ -4,7 +4,7 @@ import com.zinngar.savelogic.GitHubStorageProvider;
 import com.zinngar.savelogic.SaveLogic;
 import com.zinngar.savelogic.config.Config;
 import net.minecraft.ChatFormatting;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.CycleButton;
 import net.minecraft.client.gui.components.EditBox;
@@ -106,31 +106,31 @@ public class SettingsScreen extends Screen {
     }
 
     private void confirmForget() {
-        this.minecraft.gui.setScreen(new ConfirmScreen(confirmed -> {
+        this.minecraft.setScreen(new ConfirmScreen(confirmed -> {
             if (confirmed) {
                 SaveLogic.CONFIG.github.personalAccessToken = "";
                 SaveLogic.CONFIG.save();
                 tokenField.setValue("");
                 connectionStatus = Component.literal("Token removed from this computer.").withStyle(ChatFormatting.YELLOW);
             }
-            this.minecraft.gui.setScreen(this);
+            this.minecraft.setScreen(this);
         }, Component.translatable("savelogic.settings.forget"),
                 Component.literal("Your cloud saves stay on GitHub; you will need to paste the token again to use them.")));
     }
 
     @Override
     public void onClose() {
-        this.minecraft.gui.setScreen(parent);
+        this.minecraft.setScreen(parent);
     }
 
     @Override
-    public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
-        super.extractRenderState(graphics, mouseX, mouseY, delta);
+    public void render(GuiGraphics graphics, int mouseX, int mouseY, float delta) {
+        super.render(graphics, mouseX, mouseY, delta);
         int left = this.width / 2 - 150;
-        graphics.centeredText(this.font, this.title, this.width / 2, 8, 0xFFFFFFFF);
-        graphics.text(this.font, Component.translatable("savelogic.settings.repository"), left, 20, 0xFFA0A0A0);
-        graphics.text(this.font, Component.translatable("savelogic.settings.token"), left, 54, 0xFFA0A0A0);
-        graphics.text(this.font, Component.translatable("savelogic.settings.device"), left, 88, 0xFFA0A0A0);
-        graphics.textWithWordWrap(this.font, connectionStatus, left, 172, 300, 0xFFFFFFFF);
+        graphics.drawCenteredString(this.font, this.title, this.width / 2, 8, 0xFFFFFFFF);
+        graphics.drawString(this.font, Component.translatable("savelogic.settings.repository"), left, 20, 0xFFA0A0A0);
+        graphics.drawString(this.font, Component.translatable("savelogic.settings.token"), left, 54, 0xFFA0A0A0);
+        graphics.drawString(this.font, Component.translatable("savelogic.settings.device"), left, 88, 0xFFA0A0A0);
+        graphics.drawWordWrap(this.font, connectionStatus, left, 172, 300, 0xFFFFFFFF);
     }
 }

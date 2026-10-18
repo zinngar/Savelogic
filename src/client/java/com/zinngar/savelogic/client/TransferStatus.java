@@ -3,7 +3,7 @@ package com.zinngar.savelogic.client;
 import com.zinngar.savelogic.util.Progress;
 import net.fabricmc.fabric.api.client.screen.v1.ScreenEvents;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.FormattedCharSequence;
@@ -37,7 +37,7 @@ public final class TransferStatus implements Progress {
     /** Draws the bar on every screen once it has been set up. */
     public static void register() {
         ScreenEvents.AFTER_INIT.register((minecraft, screen, width, height) ->
-                ScreenEvents.afterExtract(screen).register((s, graphics, mouseX, mouseY, delta) -> INSTANCE.draw(s, graphics)));
+                ScreenEvents.afterRender(screen).register((s, graphics, mouseX, mouseY, delta) -> INSTANCE.draw(s, graphics)));
     }
 
     public boolean isActive() {
@@ -91,7 +91,7 @@ public final class TransferStatus implements Progress {
         this.active = false;
     }
 
-    private void draw(Screen screen, GuiGraphicsExtractor graphics) {
+    private void draw(Screen screen, GuiGraphics graphics) {
         boolean showResult = !active && result != null && System.currentTimeMillis() - finishedAtMs < RESULT_SHOWN_MS;
         if (!active && !showResult) {
             return;
@@ -106,18 +106,18 @@ public final class TransferStatus implements Progress {
         int bottom = barTop + 12 + 10 * Math.max(1, lines.size());
 
         graphics.fill(left - 4, top - 2, left + WIDTH + 4, bottom, 0xD0000000);
-        graphics.text(font, title, left, top + 2, 0xFFFFFFFF);
+        graphics.drawString(font, title, left, top + 2, 0xFFFFFFFF);
 
         if (!active) {
             graphics.fill(left, barTop, left + WIDTH, barTop + 8, failed ? 0xFFB03030 : 0xFF30A040);
             for (int i = 0; i < lines.size(); i++) {
-                graphics.text(font, lines.get(i), left, barTop + 11 + 10 * i, failed ? 0xFFFF7070 : 0xFF80FF80);
+                graphics.drawString(font, lines.get(i), left, barTop + 11 + 10 * i, failed ? 0xFFFF7070 : 0xFF80FF80);
             }
             return;
         }
 
         String phaseText = phase;
-        graphics.text(font, phaseText, left + WIDTH - font.width(phaseText), top + 2, 0xFFA0A0A0);
+        graphics.drawString(font, phaseText, left + WIDTH - font.width(phaseText), top + 2, 0xFFA0A0A0);
 
         // Bar background, then fill. Without a known size, show a sliding block so it still looks alive.
         graphics.fill(left, barTop, left + WIDTH, barTop + 8, 0xFF404040);
@@ -132,7 +132,7 @@ public final class TransferStatus implements Progress {
             graphics.fill(left + Math.max(0, offset), barTop, left + Math.min(WIDTH, offset + block), barTop + 8, 0xFF3B82F6);
         }
 
-        graphics.text(font, details(total, done), left, barTop + 11, 0xFFD0D0D0);
+        graphics.drawString(font, details(total, done), left, barTop + 11, 0xFFD0D0D0);
     }
 
     private String details(long total, long done) {

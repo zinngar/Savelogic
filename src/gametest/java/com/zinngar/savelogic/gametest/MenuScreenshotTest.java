@@ -27,11 +27,11 @@ public class MenuScreenshotTest implements FabricClientGameTest {
         for (int scale : new int[]{2, 3, 4}) {
             context.runOnClient(minecraft -> {
                 minecraft.options.guiScale().set(scale);
-                minecraft.resizeGui();
+                minecraft.resizeDisplay();
             });
             context.waitTicks(5);
             context.runOnClient(minecraft -> {
-                var screen = minecraft.gui.screen();
+                var screen = minecraft.screen;
                 Button cloud = screen.children().stream()
                         .filter(child -> child instanceof Button b && b.getMessage().getString().equals("☁"))
                         .map(Button.class::cast).findFirst()
@@ -48,7 +48,7 @@ public class MenuScreenshotTest implements FabricClientGameTest {
 
         context.runOnClient(minecraft -> {
             minecraft.options.guiScale().set(2);
-            minecraft.resizeGui();
+            minecraft.resizeDisplay();
         });
         context.setScreen(() -> new CloudSavesScreen(new TitleScreen()));
         context.waitTicks(5);

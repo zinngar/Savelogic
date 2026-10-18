@@ -1,5 +1,6 @@
 plugins {
-    id 'net.fabricmc.fabric-loom' version "${loom_version}"
+    // 1.21.11 is still obfuscated, so this branch uses Loom's remapping plugin with Mojang's names.
+    id 'net.fabricmc.fabric-loom-remap' version "${loom_version}"
 }
 
 // "2.0.0+26.3": the mod's own version, plus (as semver build metadata) the Minecraft version it is built for.
@@ -12,8 +13,9 @@ base {
 
 dependencies {
     minecraft "com.mojang:minecraft:${project.minecraft_version}"
-    implementation "net.fabricmc:fabric-loader:${project.loader_version}"
-    implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
+    mappings loom.officialMojangMappings()
+    modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
+    modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
     // HTTP uses java.net.http and JSON uses the Gson that ships with Minecraft,
     // so nothing needs to be bundled into the jar.
 }
@@ -28,7 +30,7 @@ processResources {
 }
 
 tasks.withType(JavaCompile).configureEach {
-    it.options.release = 25
+    it.options.release = 21
 }
 
 loom {
@@ -45,8 +47,8 @@ loom {
 java {
     withSourcesJar()
 
-    sourceCompatibility = JavaVersion.VERSION_25
-    targetCompatibility = JavaVersion.VERSION_25
+    sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
 }
 
 // Screenshot tests for the mod's menus: ./gradlew runClientGameTest (not part of the mod jar).

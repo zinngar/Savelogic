@@ -1,6 +1,6 @@
 package com.zinngar.savelogic.client.screen;
 
-import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
@@ -49,13 +49,13 @@ public class ChoiceScreen extends Screen {
     }
 
     @Override
-    public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
-        super.extractRenderState(graphics, mouseX, mouseY, delta);
+    public void render(GuiGraphics graphics, int mouseX, int mouseY, float delta) {
+        super.render(graphics, mouseX, mouseY, delta);
         int y = textTop();
-        graphics.centeredText(this.font, this.title, this.width / 2, y, 0xFFFFFFFF);
+        graphics.drawCenteredString(this.font, this.title, this.width / 2, y, 0xFFFFFFFF);
         y += 14;
         for (FormattedCharSequence line : lines) {
-            graphics.centeredText(this.font, line, this.width / 2, y, 0xFFD0D0D0);
+            graphics.drawCenteredString(this.font, line, this.width / 2, y, 0xFFD0D0D0);
             y += 10;
         }
     }

@@ -8,7 +8,7 @@ import com.zinngar.savelogic.client.SaveLogicClient;
 import com.zinngar.savelogic.client.SetupSync;
 import com.zinngar.savelogic.client.TransferStatus;
 import net.minecraft.ChatFormatting;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.ConfirmScreen;
 import net.minecraft.client.gui.screens.Screen;
@@ -44,10 +44,10 @@ public class CloudSavesScreen extends Screen {
             SelectWorldScreen picker = new SelectWorldScreen(this);
             SaveLogicClient.uploadPickerScreen = picker;
             SaveLogicClient.uploadReturnScreen = this;
-            this.minecraft.gui.setScreen(picker);
+            this.minecraft.setScreen(picker);
         }).bounds(left, top, 200, 20).build());
         Button loadButton = this.addRenderableWidget(Button.builder(Component.translatable("savelogic.menu.load"),
-                button -> this.minecraft.gui.setScreen(new SaveLogicSelectionScreen(this)))
+                button -> this.minecraft.setScreen(new SaveLogicSelectionScreen(this)))
                 .bounds(left, top + 24, 200, 20).build());
 
         // Mods & configs
@@ -72,7 +72,7 @@ public class CloudSavesScreen extends Screen {
         installSetup.active = enabled || SetupSync.isInstallPending();
 
         this.addRenderableWidget(Button.builder(Component.translatable("savelogic.menu.settings"),
-                button -> this.minecraft.gui.setScreen(new SettingsScreen(this)))
+                button -> this.minecraft.setScreen(new SettingsScreen(this)))
                 .bounds(left, setupTop + 60, 200, 20).build());
 
         this.addRenderableWidget(Button.builder(Component.translatable("gui.back"), button -> this.onClose())
@@ -80,8 +80,8 @@ public class CloudSavesScreen extends Screen {
     }
 
     private void confirmUploadSetup() {
-        this.minecraft.gui.setScreen(new ConfirmScreen(confirmed -> {
-            this.minecraft.gui.setScreen(this);
+        this.minecraft.setScreen(new ConfirmScreen(confirmed -> {
+            this.minecraft.setScreen(this);
             if (confirmed) {
                 SetupSync.uploadSetup();
                 this.rebuildWidgets();
@@ -105,8 +105,8 @@ public class CloudSavesScreen extends Screen {
     }
 
     private void confirmInstall(CloudSave setup) {
-        this.minecraft.gui.setScreen(new ConfirmScreen(confirmed -> {
-            this.minecraft.gui.setScreen(this);
+        this.minecraft.setScreen(new ConfirmScreen(confirmed -> {
+            this.minecraft.setScreen(this);
             if (confirmed) {
                 SetupSync.downloadSetup(setup, this::offerQuit);
                 this.rebuildWidgets();
@@ -118,12 +118,12 @@ public class CloudSavesScreen extends Screen {
     }
 
     private void offerQuit() {
-        this.minecraft.gui.setScreen(new ConfirmScreen(quit -> {
+        this.minecraft.setScreen(new ConfirmScreen(quit -> {
             if (quit) {
                 this.minecraft.stop();
             } else {
                 showMessage("Your new setup will be installed the next time you close Minecraft.", false);
-                this.minecraft.gui.setScreen(this);
+                this.minecraft.setScreen(this);
             }
         }, Component.literal("Setup downloaded").withStyle(ChatFormatting.GREEN),
                 Component.literal("Close Minecraft to install it. Start Minecraft again afterwards and your mods and configs will match."),
@@ -155,27 +155,27 @@ public class CloudSavesScreen extends Screen {
 
     @Override
     public void onClose() {
-        this.minecraft.gui.setScreen(parent);
+        this.minecraft.setScreen(parent);
     }
 
     @Override
-    public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
-        super.extractRenderState(graphics, mouseX, mouseY, delta);
+    public void render(GuiGraphics graphics, int mouseX, int mouseY, float delta) {
+        super.render(graphics, mouseX, mouseY, delta);
         int left = this.width / 2 - 100;
         int top = Math.max(60, this.height / 4 + 10);
-        graphics.centeredText(this.font, this.title, this.width / 2, top - 30, 0xFFFFFFFF);
-        graphics.text(this.font, Component.translatable("savelogic.section.worlds"), left, top - 11, 0xFFA0A0A0);
-        graphics.text(this.font, Component.translatable("savelogic.section.setup"), left, top + 53, 0xFFA0A0A0);
+        graphics.drawCenteredString(this.font, this.title, this.width / 2, top - 30, 0xFFFFFFFF);
+        graphics.drawString(this.font, Component.translatable("savelogic.section.worlds"), left, top - 11, 0xFFA0A0A0);
+        graphics.drawString(this.font, Component.translatable("savelogic.section.setup"), left, top + 53, 0xFFA0A0A0);
 
         // One status line between the setup buttons and Settings; the newest message wins.
         int noteY = top + 64 + 48 + 2;
         if (message != null) {
-            graphics.centeredText(this.font, this.font.plainSubstrByWidth(message, this.width - 20), this.width / 2, noteY,
+            graphics.drawCenteredString(this.font, this.font.plainSubstrByWidth(message, this.width - 20), this.width / 2, noteY,
                     messageIsError ? 0xFFFF6060 : 0xFFA0A0A0);
         } else if (SetupSync.isInstallPending()) {
-            graphics.centeredText(this.font, Component.translatable("savelogic.setup.pending"), this.width / 2, noteY, 0xFFFFD060);
+            graphics.drawCenteredString(this.font, Component.translatable("savelogic.setup.pending"), this.width / 2, noteY, 0xFFFFD060);
         } else if (CloudStorageManager.getProvider() == null) {
-            graphics.centeredText(this.font, Component.translatable("savelogic.message.not_configured"), this.width / 2, noteY, 0xFFFF6060);
+            graphics.drawCenteredString(this.font, Component.translatable("savelogic.message.not_configured"), this.width / 2, noteY, 0xFFFF6060);
         }
     }
 }

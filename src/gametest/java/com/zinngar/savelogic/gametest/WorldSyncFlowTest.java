@@ -26,8 +26,8 @@ import java.nio.file.Path;
 import java.util.List;
 
 /**
- * Two computers sharing a world, run against a local fake GitHub (start it and set SAVELOGIC_FAKE_GITHUB to its
- * URL; the test is skipped otherwise). "This" computer is the MacBook; the Gaming PC is simulated by calling the
+ * Two computers sharing a world, run against an in-memory {@link FakeGitHub} so no real account is touched.
+ * "This" computer is the MacBook; the Gaming PC is simulated by calling the
  * GitHub client directly with its own device id.
  */
 public class WorldSyncFlowTest implements FabricClientGameTest {
@@ -36,11 +36,17 @@ public class WorldSyncFlowTest implements FabricClientGameTest {
 
     @Override
     public void runTest(ClientGameTestContext context) {
-        String fake = System.getenv("SAVELOGIC_FAKE_GITHUB");
-        if (fake == null) {
-            return;
+        try (FakeGitHub fake = new FakeGitHub()) {
+            System.setProperty("savelogic.testApiBase", fake.baseUrl());
+            runFlow(context);
+        } catch (java.io.IOException e) {
+            throw new AssertionError(e);
+        } finally {
+            System.clearProperty("savelogic.testApiBase");
         }
-        System.setProperty("savelogic.testApiBase", fake);
+    }
+
+    private void runFlow(ClientGameTestContext context) {
         context.runOnClient(mc -> {
             SaveLogic.CONFIG.github.repositoryUrl = "o/r";
             SaveLogic.CONFIG.github.personalAccessToken = "good-token";
@@ -61,14 +67,14 @@ public class WorldSyncFlowTest implements FabricClientGameTest {
         context.waitForScreen(TitleScreen.class);
 
         // 1. First upload from this computer.
-        context.runOnClient(mc -> CloudSync.uploadWorld(folder, false, mc.gui.screen()));
+        context.runOnClient(mc -> CloudSync.uploadWorld(folder, false, mc.screen));
         waitForTransfer(context);
         String stamp1 = marker(worldDir).stamp();
         check(cloud(github, folder).newest().stamp().equals(stamp1), "first upload: marker matches the cloud version");
 
         // 2. The PC uploads a newer version; uploading again from here must ask first.
         uploadAsPc(github, folder, worldDir);
-        context.runOnClient(mc -> CloudSync.uploadWorld(folder, false, mc.gui.screen()));
+        context.runOnClient(mc -> CloudSync.uploadWorld(folder, false, mc.screen));
         context.waitForScreen(ChoiceScreen.class);
         context.takeScreenshot("sync-conflict-on-upload");
         context.clickScreenButton("Upload mine (keep theirs in history)");
@@ -98,7 +104,7 @@ public class WorldSyncFlowTest implements FabricClientGameTest {
         context.setScreen(TitleScreen::new);
 
         // Simulate "Download it and play" without leaving the test's control of the world: replace, then open.
-        context.runOnClient(mc -> CloudSync.downloadWorld(cloud(github, folder), cloud(github, folder).newest(), mc.gui.screen(), f -> {}));
+        context.runOnClient(mc -> CloudSync.downloadWorld(cloud(github, folder), cloud(github, folder).newest(), mc.screen, f -> {}));
         context.waitForScreen(ChoiceScreen.class);
         context.takeScreenshot("sync-download-existing");
         context.clickScreenButton("Replace my copy");

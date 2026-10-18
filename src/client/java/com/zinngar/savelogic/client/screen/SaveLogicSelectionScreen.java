@@ -7,7 +7,7 @@ import com.zinngar.savelogic.client.CloudStorageManager;
 import com.zinngar.savelogic.client.CloudSync;
 import com.zinngar.savelogic.client.CloudText;
 import com.zinngar.savelogic.client.TransferStatus;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.screens.Screen;
@@ -85,7 +85,7 @@ public class SaveLogicSelectionScreen extends Screen {
             open.active = idle;
             Button versions = this.addRenderableWidget(Button.builder(
                             Component.literal("Versions (" + world.versions().size() + ")"),
-                            b -> this.minecraft.gui.setScreen(new VersionsScreen(this, world)))
+                            b -> this.minecraft.setScreen(new VersionsScreen(this, world)))
                     .bounds(left + 236, y, 74, 20).build());
             versions.active = idle;
             y += ROW_HEIGHT;
@@ -128,15 +128,15 @@ public class SaveLogicSelectionScreen extends Screen {
 
     @Override
     public void onClose() {
-        this.minecraft.gui.setScreen(parent);
+        this.minecraft.setScreen(parent);
     }
 
     @Override
-    public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
-        super.extractRenderState(graphics, mouseX, mouseY, delta);
-        graphics.centeredText(this.font, this.title, this.width / 2, 15, 0xFFFFFFFF);
+    public void render(GuiGraphics graphics, int mouseX, int mouseY, float delta) {
+        super.render(graphics, mouseX, mouseY, delta);
+        graphics.drawCenteredString(this.font, this.title, this.width / 2, 15, 0xFFFFFFFF);
         if (status != null) {
-            graphics.centeredText(this.font, this.font.plainSubstrByWidth(status, this.width - 20), this.width / 2, 28,
+            graphics.drawCenteredString(this.font, this.font.plainSubstrByWidth(status, this.width - 20), this.width / 2, 28,
                     statusIsError ? 0xFFFF6060 : 0xFFA0A0A0);
         }
     }

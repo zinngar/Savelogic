@@ -1,6 +1,6 @@
 # SaveLogic: Cloud Saves for Minecraft
 
-A Fabric mod for **Minecraft 26.3** that saves your singleplayer worlds to a **private GitHub repository** and loads them back on any computer.
+A Fabric mod for **Minecraft 1.21.11** that saves your singleplayer worlds to a **private GitHub repository** and loads them back on any computer.
 
 ## Features
 
@@ -57,18 +57,30 @@ Good to know:
 *   Your current mods are moved, and any configs that get replaced are copied, to `savelogic-backups/setup-before-<date>` first. To undo, copy them back.
 *   Mods that aren't in the setup are removed from `mods`; config files that aren't in the setup are left alone.
 *   SaveLogic's own jar and its token files (`config/savelogic.json`, `config/savelogic.key`) are never uploaded or replaced.
-*   Setups are stored per Minecraft version (one release per version), so a setup made on 26.3 only installs on 26.3.
+*   Setups are stored per Minecraft version (one release per version), so a setup made on 1.21.11 only installs on 1.21.11.
 *   Some mods keep personal data in their config files. The saves repository is private, but keep that in mind before sharing it.
+
+## Minecraft versions
+
+Each Minecraft version has its own branch, and releases are numbered `<mod version>+<Minecraft version>`:
+
+| Minecraft | Branch | Mod version | Java |
+|---|---|---|---|
+| 26.3 | [`26.3`](https://github.com/zinngar/Savelogic/tree/26.3) | 2.0.0+26.3 | 25 |
+| 1.21.11 | [`1.21.11`](https://github.com/zinngar/Savelogic/tree/1.21.11) | 2.0.0+1.21.11 | 21 |
+| 1.21.10 | [`1.21.10`](https://github.com/zinngar/Savelogic/tree/1.21.10) | 0.1.x (old version, not maintained) | 21 |
+
+Worlds and mods & configs can be shared between computers on the same Minecraft version. A world saved on a newer Minecraft version won't open on an older one.
 
 ## Build
 
-Requires a JDK 25 or newer.
+Requires a JDK 21 or newer.
 
 ```bash
 ./gradlew build
 ```
 
-The mod jar is written to `build/libs/`, named with the mod version and the Minecraft version it's for, e.g. `savelogic-2.0.0+26.3.jar`. Install it together with Fabric Loader 0.19.5+ and Fabric API for 26.3.
+The mod jar is written to `build/libs/`, named with the mod version and the Minecraft version it's for, e.g. `savelogic-2.0.0+1.21.11.jar`. Install it together with Fabric Loader 0.19.5+ and Fabric API for 1.21.11.
 
 ## Support
 

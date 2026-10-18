@@ -87,18 +87,18 @@ public class CloudSync {
                     ? "\"" + cloudName + "\" is already in the cloud (saved " + when + " on " + who
                             + "), and this copy has never been synced with it."
                     : who + " saved \"" + cloudName + "\" " + when + ", after this copy was last synced.";
-            minecraft.gui.setScreen(new ChoiceScreen(Component.literal("Newer version in the cloud"),
+            minecraft.setScreen(new ChoiceScreen(Component.literal("Newer version in the cloud"),
                     Component.literal(message + " If you upload yours, theirs stays in the version history."),
                     List.of(
                             new Choice(Component.literal("Upload mine (keep theirs in history)"), () -> {
-                                minecraft.gui.setScreen(returnTo);
+                                minecraft.setScreen(returnTo);
                                 upload(folder, cloudName);
                             }),
                             new Choice(Component.literal("Upload as a separate world"), () -> {
-                                minecraft.gui.setScreen(returnTo);
+                                minecraft.setScreen(returnTo);
                                 upload(folder, cloudName + " (" + device().name() + ")");
                             }),
-                            new Choice(Component.translatable("gui.cancel"), () -> minecraft.gui.setScreen(returnTo)))));
+                            new Choice(Component.translatable("gui.cancel"), () -> minecraft.setScreen(returnTo)))));
         }));
     }
 
@@ -150,19 +150,19 @@ public class CloudSync {
             fetch(world, version, folder, false, onDone);
             return;
         }
-        minecraft.gui.setScreen(new ChoiceScreen(Component.literal("You already have \"" + folder + "\""),
+        minecraft.setScreen(new ChoiceScreen(Component.literal("You already have \"" + folder + "\""),
                 Component.literal("Replace your copy with the version saved " + CloudText.when(version.uploaded()) + " on "
                         + CloudText.device(version.device()) + "? Your copy is backed up to savelogic-backups/worlds first."),
                 List.of(
                         new Choice(Component.literal("Replace my copy"), () -> {
-                            minecraft.gui.setScreen(returnTo);
+                            minecraft.setScreen(returnTo);
                             fetch(world, version, folder, true, onDone);
                         }),
                         new Choice(Component.literal("Keep both (download as a new world)"), () -> {
-                            minecraft.gui.setScreen(returnTo);
+                            minecraft.setScreen(returnTo);
                             fetch(world, version, folder, false, onDone);
                         }),
-                        new Choice(Component.translatable("gui.cancel"), () -> minecraft.gui.setScreen(returnTo)))));
+                        new Choice(Component.translatable("gui.cancel"), () -> minecraft.setScreen(returnTo)))));
     }
 
     /** Downloads straight over the local copy (backing it up first); used by the open-world check. */
@@ -251,7 +251,7 @@ public class CloudSync {
 
     public static void toast(String title, String message) {
         Minecraft minecraft = Minecraft.getInstance();
-        minecraft.execute(() -> SystemToast.addOrUpdate(minecraft.gui.toastManager(),
+        minecraft.execute(() -> SystemToast.addOrUpdate(minecraft.getToastManager(),
                 SystemToast.SystemToastId.PERIODIC_NOTIFICATION,
                 Component.literal(title), Component.literal(message)));
     }
