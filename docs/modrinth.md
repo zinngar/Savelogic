@@ -20,6 +20,7 @@ Cloud saves for singleplayer: sync your worlds, mods and configs between compute
 - **Version history.** The last few versions of each world are kept (5 by default), each labelled with when and on which computer it was saved. Restore any of them in two clicks.
 - **Big worlds welcome.** Worlds are split into 1 GB parts, so there's no practical size limit.
 - **Same mods everywhere.** Upload your mods and configs once and install them on another computer. The swap happens after Minecraft closes, and your old mods are backed up first.
+- **Schematics everywhere.** Your Litematica schematics sync between computers automatically. Deleted ones are backed up, and if one was changed on two computers, both copies are kept.
 - **Check for mod updates.** Finds newer versions of your mods on Modrinth for your Minecraft version, adds any libraries they need, and installs them after Minecraft closes, again with a backup.
 - **Progress bar** for every upload and download, with speed and time left.
 
@@ -27,7 +28,7 @@ Cloud saves for singleplayer: sync your worlds, mods and configs between compute
 
 1. Create a **private** repository on GitHub (for example `minecraft-saves`).
 2. Create a **fine-grained personal access token** with access to only that repository and **Contents: Read and write**.
-3. In Minecraft, click **☁** next to Singleplayer, then **Settings**. Paste the repository URL and the token, then press **Test Connection**.
+3. In Minecraft, click **☁** next to Singleplayer, then **Settings**. Paste the repository URL and the token, then press **Test**.
 
 Your worlds then appear on the repository's **Releases** page, one release per world. Full instructions are in the [README](https://github.com/zinngar/Savelogic#readme).
 
@@ -43,10 +44,10 @@ Your worlds then appear on the repository's **Releases** page, one release per w
 
 SaveLogic only connects to the internet when you use it, and only to:
 
-- **GitHub** (`api.github.com`, `uploads.github.com`): the repository *you* configure, to upload and download your worlds and your mods & configs, and to record which of your computers has a world open.
+- **GitHub** (`api.github.com`, `uploads.github.com`): the repository *you* configure, to upload and download your worlds, your mods & configs and your schematics, and to record which of your computers has a world open.
 - **Modrinth** (`api.modrinth.com`, `cdn.modrinth.com`): when you press *Check for Mod Updates*, to look up your installed mods by their file fingerprints and download the updates you choose.
 
-There is no telemetry and no SaveLogic server. Your GitHub token is stored encrypted on your computer and is never uploaded with your worlds or settings. Keep the saves repository **private**: *Test Connection* warns you if it's public.
+There is no telemetry and no SaveLogic server. Your GitHub token is stored encrypted on your computer and is never uploaded with your worlds or settings. Keep the saves repository **private**: *Settings > Test* warns you if it's public.
 
 ## Good to know
 

@@ -23,6 +23,7 @@ public class SettingsScreen extends Screen {
     private EditBox tokenField;
     private EditBox deviceField;
     private boolean automaticBackup;
+    private boolean schematicsAutoSync;
     private boolean autoUpload;
     private int keepVersions;
     private Component connectionStatus = Component.empty();
@@ -31,6 +32,7 @@ public class SettingsScreen extends Screen {
         super(Component.translatable("savelogic.settings.title"));
         this.parent = parent;
         this.automaticBackup = SaveLogic.CONFIG.automaticBackup;
+        this.schematicsAutoSync = SaveLogic.CONFIG.schematicsAutoSync;
         this.autoUpload = SaveLogic.CONFIG.autoUpload;
         this.keepVersions = SaveLogic.CONFIG.keepVersions;
     }
@@ -44,11 +46,13 @@ public class SettingsScreen extends Screen {
         String token = tokenField != null ? tokenField.getValue() : config.github.personalAccessToken;
         String device = deviceField != null ? deviceField.getValue() : config.device().name();
 
-        repoUrlField = new EditBox(this.font, left, 30, 300, 20, Component.translatable("savelogic.settings.repository"));
+        repoUrlField = new EditBox(this.font, left, 30, 220, 20, Component.translatable("savelogic.settings.repository"));
         repoUrlField.setMaxLength(256);
         repoUrlField.setHint(Component.literal("https://github.com/you/minecraft-saves"));
         repoUrlField.setValue(repoUrl == null ? "" : repoUrl);
         this.addRenderableWidget(repoUrlField);
+        this.addRenderableWidget(Button.builder(Component.translatable("savelogic.settings.test"), button -> testConnection())
+                .bounds(left + 224, 30, 76, 20).build());
 
         tokenField = new EditBox(this.font, left, 64, 300, 20, Component.translatable("savelogic.settings.token"));
         tokenField.setMaxLength(512);
@@ -72,8 +76,9 @@ public class SettingsScreen extends Screen {
         this.addRenderableWidget(CycleButton.onOffBuilder(automaticBackup)
                 .create(left, 148, 147, 20, Component.translatable("savelogic.settings.auto_backup"),
                         (button, value) -> automaticBackup = value));
-        this.addRenderableWidget(Button.builder(Component.translatable("savelogic.settings.test"), button -> testConnection())
-                .bounds(left + 153, 148, 147, 20).build());
+        this.addRenderableWidget(CycleButton.onOffBuilder(schematicsAutoSync)
+                .create(left + 153, 148, 147, 20, Component.translatable("savelogic.settings.schematics_sync"),
+                        (button, value) -> schematicsAutoSync = value));
 
         this.addRenderableWidget(Button.builder(Component.translatable("savelogic.settings.forget")
                         .withStyle(ChatFormatting.RED), button -> confirmForget())
@@ -88,6 +93,7 @@ public class SettingsScreen extends Screen {
             SaveLogic.CONFIG.autoUpload = autoUpload;
             SaveLogic.CONFIG.keepVersions = keepVersions;
             SaveLogic.CONFIG.automaticBackup = automaticBackup;
+            SaveLogic.CONFIG.schematicsAutoSync = schematicsAutoSync;
             SaveLogic.CONFIG.save();
             this.onClose();
         }).bounds(left + 153, this.height - 50, 147, 20).build());

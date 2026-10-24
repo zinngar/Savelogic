@@ -16,6 +16,7 @@ A Fabric mod for **Minecraft 26.3** that saves your singleplayer worlds to a **p
 *   **No accidental overwrites:** if another computer saved a world after your copy was synced, SaveLogic asks before uploading over it, and warns when you open a world that is open on another computer or has a newer version in the cloud.
 *   **Auto-sync:** synced worlds upload automatically when you leave them.
 *   **Same mods everywhere:** upload your mods and mod configs once, then install that setup on any other computer with the same Minecraft version. See [Mods & configs](#mods--configs).
+*   **Schematics:** your Litematica schematics stay in sync between computers automatically; see [Schematics](#schematics).
 *   **Mod updates:** check your mods against Modrinth and update them in one go; see [Mod updates](#mod-updates).
 *   **Optional local backups:** zip a world into `.minecraft/savelogic-backups` every time you leave it.
 
@@ -27,7 +28,7 @@ A Fabric mod for **Minecraft 26.3** that saves your singleplayer worlds to a **p
     *   Under **Repository access**, choose **Only select repositories** and pick your saves repository.
     *   Under **Permissions**, set **Contents** to **Read and write**. That is the only permission needed.
     *   Generate the token and copy it.
-3.  **In Minecraft:** on the title screen click the **☁** button next to Singleplayer, then **Settings**. Paste the repository URL and the token, press **Test Connection**, then **Done**.
+3.  **In Minecraft:** on the title screen click the **☁** button next to Singleplayer, then **Settings**. Paste the repository URL and the token, press **Test**, then **Done**.
 
 Each world appears on your repository's **Releases** page as its own release, named after the world, with when it was last saved and its size. Don't delete those releases or their files; that is where your worlds live.
 
@@ -63,6 +64,16 @@ Good to know:
 *   SaveLogic's own jar and its token files (`config/savelogic.json`, `config/savelogic.key`) are never uploaded or replaced.
 *   Setups are stored per Minecraft version (one release per version), so a setup made on 26.3 only installs on 26.3.
 *   Some mods keep personal data in their config files. The saves repository is private, but keep that in mind before sharing it.
+
+## Schematics
+
+The `schematics` folder (where Litematica keeps its `.litematic` files; `.schem`, `.schematic` and `.nbt` files are synced too) is kept the same on every computer:
+
+*   It syncs **automatically** when Minecraft starts and whenever you leave a world, and from *☁ > Sync Schematics*. Turn off *Settings > Schematics sync* to sync only with the button.
+*   New and changed schematics go both ways, and folders inside `schematics` are kept.
+*   **Deleting** a schematic deletes it on your other computers at their next sync. Their copy is moved to `savelogic-backups/schematics` first, not lost.
+*   **Changed on two computers before either synced?** Both are kept: the other computer's copy appears next to yours as `house (Gaming PC).litematic`, on both computers.
+*   Schematics are stored in one release in your saves repository (`savelogicschematics`), one file each, so only new or changed schematics are uploaded. They are shared by all Minecraft versions.
 
 ## Mod updates
 
@@ -113,5 +124,5 @@ If you find this mod useful, please consider supporting the developer:
 Your token is stored encrypted in `config/savelogic.json`, with the key in `config/savelogic.key`. That keeps it from leaking if you share or screenshot your config, but anyone who can copy both files from your computer can use it.
 
 *   **Use a fine-grained token limited to your saves repository**, so a leaked token can't touch anything else.
-*   **Keep the saves repository private.** Test Connection warns you if it is public.
+*   **Keep the saves repository private.** *Settings > Test* warns you if it is public.
 *   **If you think the token leaked**, revoke it on GitHub and paste a new one into Settings.
