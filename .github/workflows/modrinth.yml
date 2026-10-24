@@ -27,7 +27,8 @@ jobs:
       - name: Upload the release jar to Modrinth
         env:
           GH_TOKEN: ${{ github.token }}
-          MODRINTH_TOKEN: ${{ secrets.MODRINTH_TOKEN }}
+          # MODRITH_TOKEN (sic) is also accepted, matching the secret as it was first created.
+          MODRINTH_TOKEN: ${{ secrets.MODRINTH_TOKEN || secrets.MODRITH_TOKEN }}
           TAG: ${{ github.event.release.tag_name || inputs.tag }}
           REPO: ${{ github.repository }}
           UA: zinngar/Savelogic/release-workflow (github.com/zinngar/Savelogic)
