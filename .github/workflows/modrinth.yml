@@ -46,8 +46,9 @@ jobs:
           VERSION="${TAG#v}"
           MINECRAFT="${TAG##*+}"
 
-          PROJECT_ID=$(curl -fsS -A "$UA" "https://api.modrinth.com/v2/project/$PROJECT" | jq -r .id)
-          if curl -fsS -A "$UA" "https://api.modrinth.com/v2/project/$PROJECT_ID/version" \
+          # Authenticated, so this also works while the project is still under review (not public yet).
+          PROJECT_ID=$(curl -fsS -A "$UA" -H "Authorization: $MODRINTH_TOKEN" "https://api.modrinth.com/v2/project/$PROJECT" | jq -r .id)
+          if curl -fsS -A "$UA" -H "Authorization: $MODRINTH_TOKEN" "https://api.modrinth.com/v2/project/$PROJECT_ID/version" \
               | jq -e --arg v "$VERSION" 'any(.[]; .version_number == $v)' > /dev/null; then
             echo "$VERSION is already on Modrinth."
             exit 0
