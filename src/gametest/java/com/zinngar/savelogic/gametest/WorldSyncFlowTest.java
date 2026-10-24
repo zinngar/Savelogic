@@ -143,7 +143,7 @@ public class WorldSyncFlowTest implements FabricClientGameTest {
             Thread.sleep(1100); // Distinct version stamps.
             Path zip = Files.createTempFile("pc-upload", ".zip");
             ZipUtil.zipWorld(worldDir, zip);
-            return github.uploadWorld(name, zip, PC, 5, com.zinngar.savelogic.util.Progress.NONE).join();
+            return github.uploadWorld(name, zip, null, System.currentTimeMillis(), PC, 5, com.zinngar.savelogic.util.Progress.NONE).join();
         } catch (Exception e) {
             throw new AssertionError(e);
         }

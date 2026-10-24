@@ -7,6 +7,7 @@ A Fabric mod for **Minecraft 26.3** that saves your singleplayer worlds to a **p
 *   **Save to cloud:** pick a world and upload it. Uploading the same world again replaces the previous cloud copy.
 *   **Load from cloud:** download a world into your saves folder. Existing local worlds are never overwritten; a download that would clash gets a name like `My World (2)`.
 *   **Big worlds:** each world is stored as its own GitHub *release* and split into 1 GB parts, so there is no practical size limit, and old copies are deleted rather than piling up in git history.
+*   **Fast saves:** after a world's first upload, saving sends only the files that changed (usually a few MB instead of the whole world), and a computer that is already in step downloads only the changes.
 *   **Safe re-uploads:** the new copy is fully uploaded before the old one is removed, so a failed upload never loses your cloud save.
 *   **Progress bar:** uploads and downloads show a bar at the top of the menus with percent, speed and time left, plus a clear success or error message when they finish.
 *   **Version history:** the last few versions of each world are kept (5 by default), each labelled with when and on which computer it was saved, and any of them can be restored. See [Playing on several computers](#playing-on-several-computers).
@@ -29,7 +30,7 @@ Each world appears on your repository's **Releases** page as its own release, na
 
 ## Playing on several computers
 
-A world becomes **synced** on a computer once you upload it from there or download it there. For synced worlds:
+A world becomes **synced** on a computer once you upload it from there or download it there. If you open a world that isn't synced yet but has the same name as a world in the cloud, SaveLogic asks once which copy to use (showing when each was last played): use the cloud copy, use yours (uploaded when you leave), or keep them separate. For synced worlds:
 
 *   **Opening the world** first checks the cloud (it takes a moment):
     *   If it's open on another computer, you're told which one and since when, and can play anyway or cancel. If that computer crashed or was switched off mid-game, playing anyway is safe.
@@ -41,7 +42,7 @@ A world becomes **synced** on a computer once you upload it from there or downlo
 *   **Version history:** *Load World from Cloud > Versions* lists the kept versions with when and where each was saved. Click one to restore it. *Settings > Keep versions* sets how many are kept (1, 3, 5 or 10). Each version takes space in your repository's releases.
 *   Give each computer a recognisable name in *Settings* so the history and warnings make sense.
 
-Worlds uploaded before version history existed show up as saved on "another computer". The first time you upload such a world from a computer, SaveLogic asks first, because that copy has never been synced. Choose *Upload mine*.
+**Fast saves:** the first upload of a world is a full copy. After that, each save uploads only the files that changed since the last one, plus a list of deleted files; every 10th save, or one where more than half the world changed, is a full copy again. Restoring a version downloads its full copy plus the changes after it, and a computer whose copy is already in step with the cloud downloads only the newer changes. Version history always keeps the full copy and changes that the kept versions need, so with *Keep versions* set low a few extra may be kept until the next full copy.
 
 ## Mods & configs
 

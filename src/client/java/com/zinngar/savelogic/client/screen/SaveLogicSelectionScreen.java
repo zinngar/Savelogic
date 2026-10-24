@@ -6,6 +6,7 @@ import com.zinngar.savelogic.GitHubStorageProvider.CloudWorld;
 import com.zinngar.savelogic.client.CloudStorageManager;
 import com.zinngar.savelogic.client.CloudSync;
 import com.zinngar.savelogic.client.CloudText;
+import com.zinngar.savelogic.client.SyncGate;
 import com.zinngar.savelogic.client.TransferStatus;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
@@ -52,6 +53,7 @@ public class SaveLogicSelectionScreen extends Screen {
                 setStatus("Could not load cloud saves: " + cause.getMessage(), true);
             } else {
                 worlds = result;
+                SyncGate.rememberCloudWorlds(result);
                 setStatus(result.isEmpty() ? "No cloud saves yet." : null, false);
             }
             this.rebuildWidgets();
@@ -74,8 +76,8 @@ public class SaveLogicSelectionScreen extends Screen {
         for (int i = scroll; i < Math.min(worlds.size(), scroll + visibleRows); i++) {
             CloudWorld world = worlds.get(i);
             CloudSave newest = world.newest();
-            String label = world.worldName() + "  ·  " + CloudText.when(newest.uploaded()) + "  ·  "
-                    + CloudText.device(newest.device()) + "  (" + CloudText.size(newest.size()) + ")";
+            String label = world.worldName() + "  ·  played " + CloudText.when(newest.played()) + "  ·  "
+                    + CloudText.device(newest.device());
             Button open = this.addRenderableWidget(Button.builder(Component.literal(label), b -> download(world, newest))
                     .bounds(left, y, 232, 20)
                     .tooltip(Tooltip.create(Component.literal(world.lock() != null

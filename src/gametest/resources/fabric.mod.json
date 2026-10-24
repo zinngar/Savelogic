@@ -7,7 +7,8 @@
   "entrypoints": {
     "fabric-client-gametest": [
       "com.zinngar.savelogic.gametest.MenuScreenshotTest",
-      "com.zinngar.savelogic.gametest.WorldSyncFlowTest"
+      "com.zinngar.savelogic.gametest.WorldSyncFlowTest",
+      "com.zinngar.savelogic.gametest.ChangesSyncTest"
     ]
   },
   "depends": {

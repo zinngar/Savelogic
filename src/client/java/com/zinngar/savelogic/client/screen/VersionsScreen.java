@@ -31,8 +31,9 @@ public class VersionsScreen extends Screen {
         int maxRows = Math.max(1, (this.height - 100) / 24);
         for (int i = 0; i < Math.min(world.versions().size(), maxRows); i++) {
             CloudSave version = world.versions().get(i);
-            String label = (i == 0 ? "Latest: " : "") + CloudText.when(version.uploaded()) + "  ·  "
-                    + CloudText.device(version.device()) + "  (" + CloudText.size(version.size()) + ")";
+            String label = (i == 0 ? "Latest: " : "") + "played " + CloudText.when(version.played()) + "  ·  "
+                    + CloudText.device(version.device()) + "  (" + (version.isFull() ? "full copy " : "changes ")
+                    + CloudText.size(version.size()) + ")";
             Button button = this.addRenderableWidget(Button.builder(Component.literal(label),
                             b -> CloudSync.downloadWorld(world, version, this, folder -> this.minecraft.gui.setScreen(parent)))
                     .bounds(this.width / 2 - 140, y, 280, 20).build());
