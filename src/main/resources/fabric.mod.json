@@ -3,13 +3,18 @@
   "id": "savelogic",
   "version": "${version}",
   "name": "SaveLogic",
-  "description": "Save and load your singleplayer worlds to a private GitHub repository.",
-  "authors": ["zinngar"],
+  "description": "Cloud saves for singleplayer: keep your worlds, mods and configs in sync between computers through your own private GitHub repository, with version history and fast change-only uploads. Also checks your mods for updates on Modrinth.",
+  "authors": [
+    "zinngar"
+  ],
   "contact": {
-    "sources": "https://github.com/zinngar/Savelogic"
+    "homepage": "https://modrinth.com/mod/savelogic",
+    "sources": "https://github.com/zinngar/Savelogic",
+    "issues": "https://github.com/zinngar/Savelogic/issues"
   },
+  "license": "MIT",
+  "icon": "assets/savelogic/icon.png",
   "environment": "client",
-
   "entrypoints": {
     "main": [
       "com.zinngar.savelogic.SaveLogic"
@@ -18,14 +23,12 @@
       "com.zinngar.savelogic.client.SaveLogicClient"
     ]
   },
-
   "mixins": [
     {
       "config": "savelogic.mixins.json",
       "environment": "client"
     }
   ],
-
   "depends": {
     "fabricloader": ">=0.19.5",
     "minecraft": "~1.21.11",

@@ -2,6 +2,8 @@
 
 A Fabric mod for **Minecraft 1.21.11** that saves your singleplayer worlds to a **private GitHub repository** and loads them back on any computer.
 
+**Download:** [Modrinth](https://modrinth.com/mod/savelogic) or [GitHub releases](https://github.com/zinngar/Savelogic/releases). Licensed under MIT.
+
 ## Features
 
 *   **Save to cloud:** pick a world and upload it. Uploading the same world again replaces the previous cloud copy.
@@ -86,6 +88,10 @@ Each Minecraft version has its own branch, and releases are numbered `<mod versi
 | 1.21.10 | [`1.21.10`](https://github.com/zinngar/Savelogic/tree/1.21.10) | 0.1.x (old version, not maintained) | 21 |
 
 Worlds and mods & configs can be shared between computers on the same Minecraft version. A world saved on a newer Minecraft version won't open on an older one.
+
+## Releasing
+
+Publish a GitHub release tagged `v<mod version>+<Minecraft version>` (for example `v2.0.0-beta.9+26.3`) with the built jar attached, from the branch for that Minecraft version. The *Publish to Modrinth* workflow then uploads it to Modrinth (marked as beta for pre-releases). It needs a `MODRINTH_TOKEN` repository secret: a Modrinth personal access token with the *Create versions* scope. It can also be run by hand from the Actions tab for an existing tag. The Modrinth page text lives in [`docs/modrinth.md`](docs/modrinth.md).
 
 ## Build
 

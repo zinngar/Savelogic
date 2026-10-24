@@ -1,0 +1,80 @@
+# Posts each SaveLogic release to https://modrinth.com/mod/savelogic.
+#
+# Runs when a GitHub release tagged v<mod version>+<Minecraft version> (e.g. v2.0.0-beta.9+26.3) is published,
+# or by hand from the Actions tab for an existing tag. It uploads the release's jar with the Minecraft version taken
+# from the tag, Fabric as the loader, Fabric API as a required dependency, the release notes as the changelog, and
+# "beta" for GitHub pre-releases. Versions already on Modrinth are skipped, so re-running is safe.
+#
+# Needs a repository secret MODRINTH_TOKEN: a Modrinth personal access token with the "Create versions" scope.
+name: Publish to Modrinth
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag to publish, e.g. v2.0.0-beta.8+26.3"
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Upload the release jar to Modrinth
+        env:
+          GH_TOKEN: ${{ github.token }}
+          MODRINTH_TOKEN: ${{ secrets.MODRINTH_TOKEN }}
+          TAG: ${{ github.event.release.tag_name || inputs.tag }}
+          REPO: ${{ github.repository }}
+          UA: zinngar/Savelogic/release-workflow (github.com/zinngar/Savelogic)
+          PROJECT: savelogic
+          FABRIC_API: P7dR8mSH
+        run: |
+          set -euo pipefail
+          case "$TAG" in
+            v*+*) ;;
+            *) echo "Release $TAG isn't tagged v<version>+<Minecraft version>; nothing to publish."; exit 0 ;;
+          esac
+          if [ -z "$MODRINTH_TOKEN" ]; then
+            echo "::error::Add a MODRINTH_TOKEN repository secret (Settings > Secrets and variables > Actions)."
+            exit 1
+          fi
+          VERSION="${TAG#v}"
+          MINECRAFT="${TAG##*+}"
+
+          PROJECT_ID=$(curl -fsS -A "$UA" "https://api.modrinth.com/v2/project/$PROJECT" | jq -r .id)
+          if curl -fsS -A "$UA" "https://api.modrinth.com/v2/project/$PROJECT_ID/version" \
+              | jq -e --arg v "$VERSION" 'any(.[]; .version_number == $v)' > /dev/null; then
+            echo "$VERSION is already on Modrinth."
+            exit 0
+          fi
+
+          gh release download "$TAG" -R "$REPO" -p "savelogic-*.jar" -D dist
+          JAR=$(ls dist/savelogic-*.jar | grep -v -- '-sources' | head -n 1)
+          gh release view "$TAG" -R "$REPO" --json name,body,isPrerelease > release.json
+
+          jq -n --slurpfile r release.json --arg project "$PROJECT_ID" --arg version "$VERSION" \
+                --arg minecraft "$MINECRAFT" --arg fabricApi "$FABRIC_API" '{
+              project_id: $project,
+              name: $r[0].name,
+              version_number: $version,
+              changelog: $r[0].body,
+              version_type: (if $r[0].isPrerelease or ($version | test("beta|alpha")) then "beta" else "release" end),
+              game_versions: [$minecraft],
+              loaders: ["fabric"],
+              dependencies: [{project_id: $fabricApi, dependency_type: "required"}],
+              featured: true,
+              file_parts: ["file"],
+              primary_file: "file"
+            }' > data.json
+          cat data.json | jq 'del(.changelog)'
+
+          curl -fsS -X POST "https://api.modrinth.com/v2/version" \
+            -A "$UA" -H "Authorization: $MODRINTH_TOKEN" \
+            -F "data=@data.json;type=application/json" \
+            -F "file=@$JAR;type=application/java-archive" | jq '{id, version_number, version_type, game_versions}'
+          echo "Published $VERSION for Minecraft $MINECRAFT: https://modrinth.com/mod/$PROJECT/version/$VERSION"
