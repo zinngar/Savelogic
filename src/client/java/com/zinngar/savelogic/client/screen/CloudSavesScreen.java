@@ -6,6 +6,8 @@ import com.zinngar.savelogic.client.CloudSync;
 import com.zinngar.savelogic.client.CloudText;
 import com.zinngar.savelogic.client.SaveLogicClient;
 import com.zinngar.savelogic.client.SetupSync;
+import com.zinngar.savelogic.SaveLogic;
+import com.zinngar.savelogic.client.SchematicSync;
 import com.zinngar.savelogic.client.TransferStatus;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.GuiGraphics;
@@ -36,8 +38,9 @@ public class CloudSavesScreen extends Screen {
         boolean configured = CloudStorageManager.getProvider() != null;
         // One transfer at a time; the progress bar at the top shows the one that is running.
         boolean enabled = configured && !TransferStatus.INSTANCE.isActive();
-        int left = this.width / 2 - 100;
-        int top = Math.max(42, this.height / 4 - 6);
+        int left = left();
+        int right = left + 154;
+        int top = top();
 
         // Worlds
         Button saveButton = this.addRenderableWidget(Button.builder(Component.translatable("savelogic.menu.save"), button -> {
@@ -45,44 +48,63 @@ public class CloudSavesScreen extends Screen {
             SaveLogicClient.uploadPickerScreen = picker;
             SaveLogicClient.uploadReturnScreen = this;
             this.minecraft.setScreen(picker);
-        }).bounds(left, top, 200, 20).build());
+        }).bounds(left, top, 150, 20).build());
         Button loadButton = this.addRenderableWidget(Button.builder(Component.translatable("savelogic.menu.load"),
                 button -> this.minecraft.setScreen(new SaveLogicSelectionScreen(this)))
-                .bounds(left, top + 24, 200, 20).build());
+                .bounds(right, top, 150, 20).build());
 
         // Mods & configs
-        int setupTop = top + 64;
+        int setupTop = top + 40;
         Button uploadSetup = this.addRenderableWidget(Button.builder(Component.translatable("savelogic.menu.upload_setup"),
-                button -> confirmUploadSetup()).bounds(left, setupTop, 200, 20).build());
+                button -> confirmUploadSetup()).bounds(left, setupTop, 150, 20).build());
         Button installSetup;
         if (SetupSync.isInstallPending()) {
             installSetup = this.addRenderableWidget(Button.builder(Component.translatable("savelogic.menu.cancel_setup"), button -> {
                 SetupSync.cancelPendingInstall();
                 showMessage("Install cancelled. Your mods and configs stay as they are.", false);
                 this.rebuildWidgets();
-            }).bounds(left, setupTop + 24, 200, 20).build());
+            }).bounds(right, setupTop, 150, 20).build());
         } else {
-            installSetup = this.addRenderableWidget(Button.builder(Component.translatable("savelogic.menu.install_setup"),
-                    button -> lookUpSetup()).bounds(left, setupTop + 24, 200, 20).build());
+            installSetup = this.addRenderableWidget(Button.builder(Component.translatable("savelogic.menu.install_setup_short"),
+                    button -> lookUpSetup()).bounds(right, setupTop, 150, 20).build());
         }
-
         // Checking for updates only needs Modrinth, not the GitHub settings.
         Button modUpdates = this.addRenderableWidget(Button.builder(Component.translatable("savelogic.menu.mod_updates"),
                 button -> this.minecraft.setScreen(new ModUpdatesScreen(this)))
-                .bounds(left, setupTop + 48, 200, 20).build());
+                .bounds(left, setupTop + 24, 150, 20).build());
+
+        // Schematics
+        Button syncSchematics = this.addRenderableWidget(Button.builder(Component.translatable("savelogic.menu.sync_schematics"),
+                button -> {
+                    SchematicSync.sync(true, summary -> this.rebuildWidgets());
+                    this.rebuildWidgets();
+                }).bounds(left, schematicsTop(), 150, 20).build());
 
         saveButton.active = enabled;
         loadButton.active = enabled;
         uploadSetup.active = enabled;
         installSetup.active = enabled || SetupSync.isInstallPending();
         modUpdates.active = !TransferStatus.INSTANCE.isActive() && !SetupSync.isInstallPending();
+        syncSchematics.active = configured && !SchematicSync.isRunning();
 
         this.addRenderableWidget(Button.builder(Component.translatable("savelogic.menu.settings"),
                 button -> this.minecraft.setScreen(new SettingsScreen(this)))
-                .bounds(left, this.height - 26, 98, 20).build());
+                .bounds(this.width / 2 - 100, this.height - 26, 98, 20).build());
 
         this.addRenderableWidget(Button.builder(Component.translatable("gui.back"), button -> this.onClose())
-                .bounds(left + 102, this.height - 26, 98, 20).build());
+                .bounds(this.width / 2 + 2, this.height - 26, 98, 20).build());
+    }
+
+    private int left() {
+        return this.width / 2 - 152;
+    }
+
+    private int top() {
+        return Math.max(40, this.height / 4 - 10);
+    }
+
+    private int schematicsTop() {
+        return top() + 104;
     }
 
     private void confirmUploadSetup() {
@@ -167,14 +189,18 @@ public class CloudSavesScreen extends Screen {
     @Override
     public void render(GuiGraphics graphics, int mouseX, int mouseY, float delta) {
         super.render(graphics, mouseX, mouseY, delta);
-        int left = this.width / 2 - 100;
-        int top = Math.max(42, this.height / 4 - 6);
-        graphics.drawCenteredString(this.font, this.title, this.width / 2, top - 30, 0xFFFFFFFF);
+        int left = left();
+        int top = top();
+        graphics.drawCenteredString(this.font, this.title, this.width / 2, top - 28, 0xFFFFFFFF);
         graphics.drawString(this.font, Component.translatable("savelogic.section.worlds"), left, top - 11, 0xFFA0A0A0);
-        graphics.drawString(this.font, Component.translatable("savelogic.section.setup"), left, top + 53, 0xFFA0A0A0);
+        graphics.drawString(this.font, Component.translatable("savelogic.section.setup"), left, top + 29, 0xFFA0A0A0);
+        graphics.drawString(this.font, Component.translatable("savelogic.section.schematics"), left, schematicsTop() - 11, 0xFFA0A0A0);
+        String schematicsStatus = SchematicSync.isRunning() ? "Syncing..."
+                : SaveLogic.CONFIG.schematicsAutoSync ? "Auto-sync on" : "Auto-sync off";
+        graphics.drawString(this.font, schematicsStatus, left + 160, schematicsTop() + 6, 0xFFA0A0A0);
 
-        // One status line between the setup buttons and Settings; the newest message wins.
-        int noteY = top + 64 + 72 + 4;
+        // One status line above Settings/Back; the newest message wins.
+        int noteY = schematicsTop() + 30;
         if (message != null) {
             graphics.drawCenteredString(this.font, this.font.plainSubstrByWidth(message, this.width - 20), this.width / 2, noteY,
                     messageIsError ? 0xFFFF6060 : 0xFFA0A0A0);
@@ -184,4 +210,5 @@ public class CloudSavesScreen extends Screen {
             graphics.drawCenteredString(this.font, Component.translatable("savelogic.message.not_configured"), this.width / 2, noteY, 0xFFFF6060);
         }
     }
+
 }

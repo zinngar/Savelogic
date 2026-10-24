@@ -7,6 +7,7 @@
 * **Progress bar for uploads and downloads** at the top of the menus (percent, MB, speed, time left), with the result shown when they finish.
 * **Cloud Saves is a ☁ button next to Singleplayer**, so it is always on screen at any GUI scale.
 * **Test Connection** now checks what you typed, and warns if the token can't write or the repository is public.
+* **Schematics sync:** your Litematica `schematics` folder stays the same on every computer. It syncs automatically at startup and when you leave a world (or with *Sync Schematics*); deletions follow with a local backup, and a schematic changed on two computers keeps both copies.
 * **Check for Mod Updates:** finds newer versions of your mods on Modrinth for your Minecraft version (plus any libraries they need) and installs them after Minecraft closes, with a backup.
 * **Fast saves:** after a world's first upload, only the files that changed are uploaded, and computers that are in step download only the changes.
 * **One question for old copies:** opening an unsynced world that has the same name as a cloud world asks which copy to use, showing when each was last played; prompts everywhere now show last-played times.

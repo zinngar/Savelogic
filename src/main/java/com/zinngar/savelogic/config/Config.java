@@ -21,6 +21,8 @@ public class Config {
     public boolean automaticBackup = false;
     /** Upload synced worlds automatically when leaving them. */
     public boolean autoUpload = true;
+    /** Sync the Litematica schematics folder automatically (at startup and when leaving a world). */
+    public boolean schematicsAutoSync = true;
     /** How many versions of each world to keep in the cloud. */
     public int keepVersions = 5;
     /** Random id for this computer, used for world locks; never changes. */
@@ -110,6 +112,7 @@ public class Config {
         onDisk.automaticBackup = this.automaticBackup;
         onDisk.autoUpload = this.autoUpload;
         onDisk.keepVersions = this.keepVersions;
+        onDisk.schematicsAutoSync = this.schematicsAutoSync;
         onDisk.deviceId = this.deviceId;
         onDisk.deviceName = this.deviceName;
         onDisk.github.repositoryUrl = this.github.repositoryUrl;

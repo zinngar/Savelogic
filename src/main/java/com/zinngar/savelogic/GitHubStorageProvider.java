@@ -65,6 +65,11 @@ public class GitHubStorageProvider {
     /** Early 2.0.0 builds kept every world in one shared release with this tag; it is still read and cleaned up. */
     private static final String SHARED_RELEASE_TAG = "savelogic-saves";
     private static final String SETUP_TAG_PREFIX = "savelogicsetup-";
+    /** All synced schematics live in one release; deliberately not starting with the world prefix. */
+    private static final String SCHEMATICS_TAG = "savelogicschematics";
+    /** Schematic assets are named f<path key>.<content SHA-1>.bin; the label holds the real path. */
+    private static final Pattern SCHEMATIC_ASSET = Pattern.compile("^f([0-9a-f]{8})\\.([0-9a-f]{40})\\.bin$");
+    private static final Pattern SCHEMATICS_META = Pattern.compile("<!-- savelogic-schematics:([A-Za-z0-9+/=]+) -->");
     public static final long PART_SIZE = 1024L * 1024 * 1024; // 1 GB, well under GitHub's 2 GB asset limit
 
     // Stamps were whole seconds (14 digits) before versions were kept; now milliseconds (17), so two uploads in the
@@ -334,6 +339,103 @@ public class GitHubStorageProvider {
             throws IOException, InterruptedException {
         List<CloudSave> versions = groupVersions(assets).getOrDefault(key, List.of());
         describeRelease(releaseId, worldName, WorldMeta.render(worldName, versions, meta));
+    }
+
+    // --- Schematics ---
+
+    /** One schematic in the cloud: its path inside the schematics folder and the SHA-1 of its contents. */
+    public record SchematicFile(long assetId, String path, String sha1, long size) {}
+
+    /**
+     * The cloud's schematics. releaseId is null until the first upload. devices maps a path to the name of the
+     * computer that last uploaded it (for naming kept-both copies).
+     */
+    public record SchematicCloud(Long releaseId, List<SchematicFile> files, Map<String, String> devices) {}
+
+    public SchematicCloud listSchematics() throws IOException, InterruptedException {
+        Release release = findReleaseByTag(SCHEMATICS_TAG);
+        if (release == null) {
+            return new SchematicCloud(null, List.of(), Map.of());
+        }
+        List<SchematicFile> files = new ArrayList<>();
+        for (Asset asset : release.assets()) {
+            Matcher matcher = SCHEMATIC_ASSET.matcher(asset.name());
+            if (matcher.matches() && !asset.label().isEmpty()) {
+                files.add(new SchematicFile(asset.id(), asset.label(), matcher.group(2), asset.size()));
+            }
+        }
+        Map<String, String> devices = new LinkedHashMap<>();
+        Matcher meta = SCHEMATICS_META.matcher(release.body());
+        if (meta.find()) {
+            try {
+                JsonObject json = GSON.fromJson(new String(Base64.getDecoder().decode(meta.group(1)), StandardCharsets.UTF_8), JsonObject.class);
+                json.entrySet().forEach(e -> devices.put(e.getKey(), e.getValue().getAsString()));
+            } catch (RuntimeException e) {
+                SaveLogic.LOGGER.warn("Ignoring unreadable schematics data in release notes");
+            }
+        }
+        return new SchematicCloud(release.id(), files, devices);
+    }
+
+    public long ensureSchematicsRelease(SchematicCloud cloud) throws IOException, InterruptedException {
+        return cloud.releaseId() != null ? cloud.releaseId()
+                : createRelease(SCHEMATICS_TAG, "Schematics", "Litematica schematics synced by SaveLogic.");
+    }
+
+    /** Uploads one schematic under its path. Older uploads of the same path are removed by the caller. */
+    public void uploadSchematic(long releaseId, String path, String sha1, Path file) throws IOException, InterruptedException {
+        uploadAsset(releaseId, "f" + pathKey(path) + "." + sha1 + ".bin", path, file, Progress.NONE);
+    }
+
+    public void deleteSchematic(SchematicFile file) throws IOException, InterruptedException {
+        deleteAsset(file.assetId());
+    }
+
+    /** Downloads a schematic and checks its contents against the fingerprint in its name. */
+    public void downloadSchematic(SchematicFile file, Path target) throws IOException, InterruptedException {
+        MessageDigest digest;
+        try {
+            digest = MessageDigest.getInstance("SHA-1");
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException(e);
+        }
+        Files.createDirectories(target.getParent());
+        try (InputStream in = openAsset(file.assetId()); OutputStream out = Files.newOutputStream(target)) {
+            byte[] buffer = new byte[1 << 16];
+            int read;
+            while ((read = in.read(buffer)) > 0) {
+                out.write(buffer, 0, read);
+                digest.update(buffer, 0, read);
+            }
+        }
+        if (!HexFormat.of().formatHex(digest.digest()).equals(file.sha1())) {
+            Files.deleteIfExists(target);
+            throw new IOException("Download of schematic " + file.path() + " was corrupted");
+        }
+    }
+
+    /** Rewrites the schematics release notes: a readable list plus which computer last saved each schematic. */
+    public void describeSchematics(long releaseId, List<String> paths, Map<String, String> devices)
+            throws IOException, InterruptedException {
+        StringBuilder text = new StringBuilder("Litematica schematics synced by SaveLogic (" + paths.size() + ").\n\n");
+        for (String path : paths) {
+            text.append("- `").append(path).append("` (").append(devices.getOrDefault(path, "unknown")).append(")\n");
+        }
+        text.append("\nDon't edit or delete the attached files; SaveLogic keeps them in sync.\n\n");
+        JsonObject json = new JsonObject();
+        devices.forEach(json::addProperty);
+        text.append("<!-- savelogic-schematics:")
+                .append(Base64.getEncoder().encodeToString(GSON.toJson(json).getBytes(StandardCharsets.UTF_8))).append(" -->");
+        describeRelease(releaseId, "Schematics", text.toString());
+    }
+
+    private static String pathKey(String path) {
+        try {
+            byte[] hash = MessageDigest.getInstance("SHA-256").digest(path.getBytes(StandardCharsets.UTF_8));
+            return HexFormat.of().formatHex(hash, 0, 4);
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException(e);
+        }
     }
 
     // --- Setups (mods and configs) ---

@@ -9,7 +9,8 @@
       "com.zinngar.savelogic.gametest.MenuScreenshotTest",
       "com.zinngar.savelogic.gametest.WorldSyncFlowTest",
       "com.zinngar.savelogic.gametest.ChangesSyncTest",
-      "com.zinngar.savelogic.gametest.ModUpdatesTest"
+      "com.zinngar.savelogic.gametest.ModUpdatesTest",
+      "com.zinngar.savelogic.gametest.SchematicsSyncTest"
     ]
   },
   "depends": {

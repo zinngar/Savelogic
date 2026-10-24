@@ -8,7 +8,7 @@
   "savelogic.settings.repository": "Private GitHub repository URL",
   "savelogic.settings.token": "GitHub fine-grained token (Contents: read and write)",
   "savelogic.settings.auto_backup": "Local backup",
-  "savelogic.settings.test": "Test Connection",
+  "savelogic.settings.test": "Test",
   "savelogic.settings.forget": "Forget Token",
   "savelogic.section.worlds": "Worlds",
   "savelogic.section.setup": "Mods & configs",
@@ -21,5 +21,9 @@
   "savelogic.settings.device": "This computer's name (shown in version history)",
   "savelogic.settings.auto_upload": "Auto-upload",
   "savelogic.settings.keep_versions": "Keep versions",
-  "savelogic.menu.mod_updates": "Check for Mod Updates"
+  "savelogic.menu.mod_updates": "Check for Mod Updates",
+  "savelogic.menu.install_setup_short": "Install Mods & Configs",
+  "savelogic.menu.sync_schematics": "Sync Schematics",
+  "savelogic.section.schematics": "Schematics",
+  "savelogic.settings.schematics_sync": "Schematics sync"
 }
