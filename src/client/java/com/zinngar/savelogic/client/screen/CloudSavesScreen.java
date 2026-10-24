@@ -37,7 +37,7 @@ public class CloudSavesScreen extends Screen {
         // One transfer at a time; the progress bar at the top shows the one that is running.
         boolean enabled = configured && !TransferStatus.INSTANCE.isActive();
         int left = this.width / 2 - 100;
-        int top = Math.max(60, this.height / 4 + 10);
+        int top = Math.max(42, this.height / 4 - 6);
 
         // Worlds
         Button saveButton = this.addRenderableWidget(Button.builder(Component.translatable("savelogic.menu.save"), button -> {
@@ -66,17 +66,23 @@ public class CloudSavesScreen extends Screen {
                     button -> lookUpSetup()).bounds(left, setupTop + 24, 200, 20).build());
         }
 
+        // Checking for updates only needs Modrinth, not the GitHub settings.
+        Button modUpdates = this.addRenderableWidget(Button.builder(Component.translatable("savelogic.menu.mod_updates"),
+                button -> this.minecraft.gui.setScreen(new ModUpdatesScreen(this)))
+                .bounds(left, setupTop + 48, 200, 20).build());
+
         saveButton.active = enabled;
         loadButton.active = enabled;
         uploadSetup.active = enabled;
         installSetup.active = enabled || SetupSync.isInstallPending();
+        modUpdates.active = !TransferStatus.INSTANCE.isActive() && !SetupSync.isInstallPending();
 
         this.addRenderableWidget(Button.builder(Component.translatable("savelogic.menu.settings"),
                 button -> this.minecraft.gui.setScreen(new SettingsScreen(this)))
-                .bounds(left, setupTop + 60, 200, 20).build());
+                .bounds(left, this.height - 26, 98, 20).build());
 
         this.addRenderableWidget(Button.builder(Component.translatable("gui.back"), button -> this.onClose())
-                .bounds(left, this.height - 26, 200, 20).build());
+                .bounds(left + 102, this.height - 26, 98, 20).build());
     }
 
     private void confirmUploadSetup() {
@@ -162,13 +168,13 @@ public class CloudSavesScreen extends Screen {
     public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
         super.extractRenderState(graphics, mouseX, mouseY, delta);
         int left = this.width / 2 - 100;
-        int top = Math.max(60, this.height / 4 + 10);
+        int top = Math.max(42, this.height / 4 - 6);
         graphics.centeredText(this.font, this.title, this.width / 2, top - 30, 0xFFFFFFFF);
         graphics.text(this.font, Component.translatable("savelogic.section.worlds"), left, top - 11, 0xFFA0A0A0);
         graphics.text(this.font, Component.translatable("savelogic.section.setup"), left, top + 53, 0xFFA0A0A0);
 
         // One status line between the setup buttons and Settings; the newest message wins.
-        int noteY = top + 64 + 48 + 2;
+        int noteY = top + 64 + 72 + 4;
         if (message != null) {
             graphics.centeredText(this.font, this.font.plainSubstrByWidth(message, this.width - 20), this.width / 2, noteY,
                     messageIsError ? 0xFFFF6060 : 0xFFA0A0A0);
