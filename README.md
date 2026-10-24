@@ -14,6 +14,7 @@ A Fabric mod for **Minecraft 1.21.11** that saves your singleplayer worlds to a 
 *   **No accidental overwrites:** if another computer saved a world after your copy was synced, SaveLogic asks before uploading over it, and warns when you open a world that is open on another computer or has a newer version in the cloud.
 *   **Auto-sync:** synced worlds upload automatically when you leave them.
 *   **Same mods everywhere:** upload your mods and mod configs once, then install that setup on any other computer with the same Minecraft version. See [Mods & configs](#mods--configs).
+*   **Mod updates:** check your mods against Modrinth and update them in one go; see [Mod updates](#mod-updates).
 *   **Optional local backups:** zip a world into `.minecraft/savelogic-backups` every time you leave it.
 
 ## Setup
@@ -60,6 +61,19 @@ Good to know:
 *   SaveLogic's own jar and its token files (`config/savelogic.json`, `config/savelogic.key`) are never uploaded or replaced.
 *   Setups are stored per Minecraft version (one release per version), so a setup made on 1.21.11 only installs on 1.21.11.
 *   Some mods keep personal data in their config files. The saves repository is private, but keep that in mind before sharing it.
+
+## Mod updates
+
+*☁ > Check for Mod Updates* looks up every mod in your `mods` folder on [Modrinth](https://modrinth.com) (by the file's fingerprint, so nothing needs setting up) and lists:
+
+*   **updates** available for your Minecraft version, ticked by default (untick any you want to skip),
+*   mods that are **up to date**,
+*   mods with **no build for this Minecraft version yet**,
+*   files Modrinth **doesn't know** (for example CurseForge-only or self-built mods), which can't be checked.
+
+If an update needs a library you don't have (for example a newer Fabric API or a new dependency), it's listed and added too. *Update* downloads everything and checks each file against Modrinth's fingerprint. A running game can't replace its own mods, so the updates are installed when you close Minecraft, after your current mods are moved to `savelogic-backups/setup-before-<date>`. To give your other computer the same updates, use *Upload My Mods & Configs* afterwards.
+
+SaveLogic never updates itself this way; new SaveLogic versions come from this repository's releases. Checking for updates doesn't need the GitHub settings.
 
 ## Minecraft versions
 
