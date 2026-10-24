@@ -18,6 +18,12 @@ dependencies {
     // so nothing needs to be bundled into the jar.
 }
 
+jar {
+    from("LICENSE") {
+        rename { "${it}_savelogic" }
+    }
+}
+
 processResources {
     def version = project.version
     inputs.property "version", version
