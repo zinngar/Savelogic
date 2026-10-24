@@ -28,6 +28,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.HexFormat;
 import java.util.LinkedHashMap;
@@ -68,7 +69,10 @@ public class GitHubStorageProvider {
 
     // Stamps were whole seconds (14 digits) before versions were kept; now milliseconds (17), so two uploads in the
     // same second (two computers, or a quick re-upload) can't collide.
-    private static final Pattern ASSET_NAME = Pattern.compile("^(.+)\\.(\\d{14}|\\d{17})\\.(\\d+)-of-(\\d+)\\.zip$");
+    // A "changes" upload (only the files that changed since its parent version) adds ".p<parent stamp>" before ".zip",
+    // so the chain can always be rebuilt from the asset names alone.
+    private static final Pattern ASSET_NAME =
+            Pattern.compile("^(.+)\\.(\\d{14}|\\d{17})\\.(\\d+)-of-(\\d+)(?:\\.p(\\d{14}|\\d{17}))?\\.zip$");
     private static final DateTimeFormatter STAMP = DateTimeFormatter.ofPattern("yyyyMMddHHmmssSSS");
     private static final Duration TRANSFER_TIMEOUT = Duration.ofHours(2);
 
@@ -79,15 +83,33 @@ public class GitHubStorageProvider {
     private static final Gson GSON = new Gson();
 
     /** One uploaded version of a world (or setup), made of one or more parts. device is "" when unknown. */
-    public record CloudSave(String worldName, String key, String stamp, List<Asset> parts, Instant uploaded, String device) {
+    /**
+     * One uploaded version of a world (or setup), made of one or more parts. device is "" and lastPlayed 0 when
+     * unknown. parent is null for a full copy, or the stamp of the version a "changes" upload builds on.
+     */
+    public record CloudSave(String worldName, String key, String stamp, List<Asset> parts, Instant uploaded, String device,
+                            String parent, long lastPlayed) {
         public long size() {
             return parts.stream().mapToLong(Asset::size).sum();
         }
 
-        CloudSave withDevice(String device) {
-            return new CloudSave(worldName, key, stamp, parts, uploaded, device == null ? "" : device);
+        public boolean isFull() {
+            return parent == null;
+        }
+
+        /** When the world was last played before this upload, or the upload time if that isn't known. */
+        public Instant played() {
+            return lastPlayed > 0 ? Instant.ofEpochMilli(lastPlayed) : uploaded;
+        }
+
+        CloudSave withMeta(WorldMeta.Version meta) {
+            return meta == null ? this
+                    : new CloudSave(worldName, key, stamp, parts, uploaded, meta.device(), parent, meta.lastPlayed());
         }
     }
+
+    /** The files to apply, oldest first, to get a version: from its full base, or from a version already present. */
+    public record Chain(List<CloudSave> versions, boolean fromHave) {}
 
     /** A world in the cloud: its versions (newest first) and who has it open, if anyone. */
     public record CloudWorld(String worldName, String key, List<CloudSave> versions, Lock lock) {
@@ -133,10 +155,13 @@ public class GitHubStorageProvider {
     }
 
     /**
-     * Uploads a zipped world as its newest version and returns that version's stamp. Keeps the newest
-     * keepVersions versions, deletes older and unfinished ones, and releases this device's lock on the world.
+     * Uploads a world package as its newest version and returns that version's stamp. parent is null for a full
+     * copy, or the stamp of the (current newest) version a changes package builds on. Keeps the newest keepVersions
+     * versions plus every version they build on, deletes the rest and unfinished uploads, and releases this
+     * device's lock on the world.
      */
-    public CompletableFuture<String> uploadWorld(String worldName, Path zipFile, Device device, int keepVersions, Progress progress) {
+    public CompletableFuture<String> uploadWorld(String worldName, Path zipFile, String parent, long lastPlayed,
+                                                 Device device, int keepVersions, Progress progress) {
         return CompletableFuture.supplyAsync(() -> {
             List<Path> tempParts = new ArrayList<>();
             try {
@@ -147,9 +172,9 @@ public class GitHubStorageProvider {
                 Release existing = releases.stream().filter(r -> r.tag().equals(tag)).findFirst().orElse(null);
                 long release = existing != null ? existing.id() : createRelease(tag, worldName, "Minecraft world uploaded by SaveLogic.");
 
-                String stamp = uploadParts(release, key, worldName, parts, List.of(), progress);
+                String stamp = uploadParts(release, key, worldName, parts, parent, List.of(), progress);
 
-                // Retention: everything for this world that isn't one of the newest complete versions goes.
+                // Retention: keep the newest versions and everything they build on; the rest, and unfinished uploads, go.
                 List<Asset> ours = new ArrayList<>(releases.stream().flatMap(r -> r.assets().stream())
                         .filter(asset -> worldKeyOf(asset.name()).equals(key)).toList());
                 List<CloudSave> versions = groupVersions(ours).getOrDefault(key, List.of());
@@ -160,6 +185,12 @@ public class GitHubStorageProvider {
                         keep.add(v.stamp()); // Versions still in the old shared release are migrated by dropping them.
                     }
                 });
+                keep.addAll(ancestors(versions, parent));
+                for (CloudSave v : versions) {
+                    if (keep.contains(v.stamp())) {
+                        keep.addAll(ancestors(versions, v.parent()));
+                    }
+                }
                 List<Asset> toDelete = ours.stream().filter(asset -> !keep.contains(stampOf(asset.name()))).toList();
                 for (Asset asset : toDelete) {
                     deleteAsset(asset.id());
@@ -167,7 +198,7 @@ public class GitHubStorageProvider {
 
                 WorldMeta meta = existing != null ? WorldMeta.parse(existing.body()) : new WorldMeta();
                 meta.versions.keySet().retainAll(keep);
-                meta.versions.put(stamp, device.name());
+                meta.versions.put(stamp, new WorldMeta.Version(device.name(), lastPlayed));
                 if (meta.lock != null && meta.lock.deviceId().equals(device.id())) {
                     meta.lock = null;
                 }
@@ -193,7 +224,7 @@ public class GitHubStorageProvider {
                 byKey.forEach((key, versions) -> {
                     Release release = releases.stream().filter(r -> r.tag().equals(TAG_PREFIX + key)).findFirst().orElse(null);
                     WorldMeta meta = release != null ? WorldMeta.parse(release.body()) : new WorldMeta();
-                    List<CloudSave> named = versions.stream().map(v -> v.withDevice(meta.versions.get(v.stamp()))).toList();
+                    List<CloudSave> named = versions.stream().map(v -> v.withMeta(meta.versions.get(v.stamp()))).toList();
                     worlds.add(new CloudWorld(named.get(0).worldName(), key, named, meta.lock));
                 });
                 worlds.sort(Comparator.comparing(CloudWorld::worldName, String.CASE_INSENSITIVE_ORDER));
@@ -202,6 +233,73 @@ public class GitHubStorageProvider {
                 throw new RuntimeException(e.getMessage(), e);
             }
         });
+    }
+
+    /**
+     * One world's versions and lock, reading only that world's release (and the old shared release if needed), which
+     * is much quicker than {@link #listWorlds()} when a repository holds many worlds. Empty if it isn't in the cloud.
+     */
+    public CompletableFuture<Optional<CloudWorld>> findWorld(String worldName) {
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+                String key = worldKey(worldName);
+                Release release = findReleaseByTag(TAG_PREFIX + key);
+                List<Asset> assets = new ArrayList<>(release != null ? release.assets() : List.of());
+                Release shared = findReleaseByTag(SHARED_RELEASE_TAG);
+                if (shared != null) {
+                    assets.addAll(shared.assets());
+                }
+                List<CloudSave> versions = groupVersions(assets).get(key);
+                if (versions == null) {
+                    return Optional.empty();
+                }
+                WorldMeta meta = release != null ? WorldMeta.parse(release.body()) : new WorldMeta();
+                List<CloudSave> named = versions.stream().map(v -> v.withMeta(meta.versions.get(v.stamp()))).toList();
+                return Optional.of(new CloudWorld(named.get(0).worldName(), key, named, meta.lock));
+            } catch (IOException | InterruptedException e) {
+                throw new RuntimeException(e.getMessage(), e);
+            }
+        });
+    }
+
+    /** stamp and every version it builds on (empty for null). */
+    private static Set<String> ancestors(List<CloudSave> versions, String stamp) {
+        Set<String> result = new HashSet<>();
+        Map<String, CloudSave> byStamp = new HashMap<>();
+        versions.forEach(v -> byStamp.put(v.stamp(), v));
+        for (String s = stamp; s != null && result.add(s); ) {
+            CloudSave v = byStamp.get(s);
+            s = v == null ? null : v.parent();
+        }
+        return result;
+    }
+
+    /**
+     * The versions to apply, oldest first, to end up with target: either starting right after have (a version the
+     * caller already has, if it is in target's chain) or from target's full base.
+     */
+    public static Chain chain(CloudWorld world, CloudSave target, String have) {
+        Map<String, CloudSave> byStamp = new HashMap<>();
+        world.versions().forEach(v -> byStamp.put(v.stamp(), v));
+        List<CloudSave> chain = new ArrayList<>();
+        boolean fromHave = false;
+        for (CloudSave v = target; v != null; ) {
+            if (v.stamp().equals(have)) {
+                fromHave = true;
+                break;
+            }
+            chain.add(0, v);
+            if (v.isFull()) {
+                break;
+            }
+            CloudSave parent = byStamp.get(v.parent());
+            if (parent == null) {
+                throw new IllegalStateException("The version " + v.stamp() + " builds on " + v.parent()
+                        + ", which is no longer in the cloud");
+            }
+            v = parent;
+        }
+        return new Chain(chain, fromHave);
     }
 
     /** Marks a cloud world as open on this device (locked) or not. Does nothing if the world isn't in the cloud. */
@@ -267,7 +365,7 @@ public class GitHubStorageProvider {
                 long release = existing != null ? existing.id() : createRelease(tag, name, "Mods and configs uploaded by SaveLogic.");
                 List<Asset> previous = existing != null ? existing.assets() : List.of();
 
-                uploadParts(release, setupKey(minecraftVersion), name, parts, previous, progress);
+                uploadParts(release, setupKey(minecraftVersion), name, parts, null, previous, progress);
                 describeRelease(release, name, "Mods and configs for **Minecraft " + minecraftVersion + "**, uploaded by SaveLogic.\n\n"
                         + lastSavedLine(Files.size(zipFile), parts.size()) + "\n\n" + notes
                         + "\n\nDon't edit or delete the attached files; install this setup from Cloud Saves in Minecraft.");
@@ -302,13 +400,13 @@ public class GitHubStorageProvider {
      * Uploads the parts as a new copy, then deletes the given previous assets, so a failed upload keeps the old
      * copy. Returns the new copy's stamp.
      */
-    private String uploadParts(long release, String key, String label, List<Path> parts, List<Asset> previous, Progress progress)
-            throws IOException, InterruptedException {
+    private String uploadParts(long release, String key, String label, List<Path> parts, String parent, List<Asset> previous,
+                               Progress progress) throws IOException, InterruptedException {
         String stamp = LocalDateTime.now().format(STAMP);
         for (int i = 0; i < parts.size(); i++) {
             Path part = parts.get(i);
             progress.phase(parts.size() > 1 ? "Uploading part " + (i + 1) + " of " + parts.size() : "Uploading", Files.size(part));
-            String name = key + "." + stamp + "." + (i + 1) + "-of-" + parts.size() + ".zip";
+            String name = key + "." + stamp + "." + (i + 1) + "-of-" + parts.size() + (parent != null ? ".p" + parent : "") + ".zip";
             uploadAsset(release, name, label, part, progress);
         }
         progress.phase("Finishing up", 0);
@@ -603,8 +701,9 @@ public class GitHubStorageProvider {
 
     /** Every complete upload for each key, newest first by GitHub upload time. Unfinished uploads are left out. */
     static Map<String, List<CloudSave>> groupVersions(List<Asset> assets) {
-        // key -> stamp -> parts (indexed by part number)
+        // key -> stamp -> parts (indexed by part number); stamp -> parent stamp for changes uploads
         Map<String, Map<String, Asset[]>> uploads = new LinkedHashMap<>();
+        Map<String, String> parents = new HashMap<>();
         for (Asset asset : assets) {
             Matcher matcher = ASSET_NAME.matcher(asset.name());
             if (!matcher.matches()) {
@@ -621,6 +720,9 @@ public class GitHubStorageProvider {
                 continue; // Mismatched part counts under one timestamp; ignore the stray asset.
             }
             parts[part - 1] = asset;
+            if (matcher.group(5) != null) {
+                parents.put(matcher.group(2), matcher.group(5));
+            }
         }
 
         Map<String, List<CloudSave>> result = new LinkedHashMap<>();
@@ -630,7 +732,7 @@ public class GitHubStorageProvider {
                 if (Arrays.stream(parts).allMatch(Objects::nonNull)) {
                     String label = parts[0].label().isEmpty() ? key : parts[0].label();
                     Instant uploaded = Arrays.stream(parts).map(Asset::created).max(Comparator.naturalOrder()).orElseThrow();
-                    versions.add(new CloudSave(label, key, stamp, List.of(parts), uploaded, ""));
+                    versions.add(new CloudSave(label, key, stamp, List.of(parts), uploaded, "", parents.get(stamp), 0));
                 }
             });
             if (!versions.isEmpty()) {

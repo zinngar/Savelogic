@@ -16,8 +16,12 @@ import java.util.zip.ZipOutputStream;
 
 public class ZipUtil {
 
-    /** The game's lock file and SaveLogic's per-computer sync marker stay out of uploaded worlds. */
-    public static final Set<String> EXCLUDED_WORLD_FILES = Set.of("session.lock", "savelogic-sync.json");
+    /**
+     * The game's lock file, SaveLogic's per-computer sync marker and the headers of SaveLogic's world packages are
+     * never part of an uploaded world.
+     */
+    public static final Set<String> EXCLUDED_WORLD_FILES = Set.of("session.lock", "savelogic-sync.json",
+            WorldPackage.MANIFEST_ENTRY, WorldPackage.DELTA_ENTRY);
 
     /** Zips the contents of worldDir (without a top-level folder) into zipFile. */
     public static void zipWorld(Path worldDir, Path zipFile) throws IOException {

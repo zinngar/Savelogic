@@ -1,5 +1,6 @@
 package com.zinngar.savelogic.client;
 
+import com.zinngar.savelogic.client.screen.ChoiceScreen;
 import com.zinngar.savelogic.util.Progress;
 import net.fabricmc.fabric.api.client.screen.v1.ScreenEvents;
 import net.minecraft.client.gui.Font;
@@ -42,6 +43,11 @@ public final class TransferStatus implements Progress {
 
     public boolean isActive() {
         return active;
+    }
+
+    /** The message shown when the last transfer finished (null if it was cancelled or none has finished). */
+    public String lastResult() {
+        return result;
     }
 
     /** Starts tracking a transfer; returns false if one is already running. */
@@ -92,7 +98,9 @@ public final class TransferStatus implements Progress {
     }
 
     private void draw(Screen screen, GuiGraphics graphics) {
-        boolean showResult = !active && result != null && System.currentTimeMillis() - finishedAtMs < RESULT_SHOWN_MS;
+        // A finished transfer's result would cover the question on a choice screen, which often opens right after.
+        boolean showResult = !active && result != null && System.currentTimeMillis() - finishedAtMs < RESULT_SHOWN_MS
+                && !(screen instanceof ChoiceScreen);
         if (!active && !showResult) {
             return;
         }

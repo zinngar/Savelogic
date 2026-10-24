@@ -26,8 +26,11 @@ final class WorldMeta {
     private static final DateTimeFormatter WHEN = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm").withZone(ZoneId.systemDefault());
     private static final Gson GSON = new Gson();
 
-    /** Version stamp -> name of the computer that uploaded it. */
-    final Map<String, String> versions = new LinkedHashMap<>();
+    /** Who uploaded a version, and when the world had last been played before that upload (0 if unknown). */
+    record Version(String device, long lastPlayed) {}
+
+    /** Version stamp -> details. */
+    final Map<String, Version> versions = new LinkedHashMap<>();
     Lock lock;
 
     static WorldMeta parse(String body) {
@@ -39,7 +42,15 @@ final class WorldMeta {
         try {
             JsonObject json = GSON.fromJson(new String(Base64.getDecoder().decode(matcher.group(1)), StandardCharsets.UTF_8), JsonObject.class);
             if (json.has("versions")) {
-                json.getAsJsonObject("versions").entrySet().forEach(e -> meta.versions.put(e.getKey(), e.getValue().getAsString()));
+                json.getAsJsonObject("versions").entrySet().forEach(e -> {
+                    if (e.getValue().isJsonPrimitive()) {
+                        meta.versions.put(e.getKey(), new Version(e.getValue().getAsString(), 0)); // Beta 5/6 format.
+                    } else {
+                        JsonObject v = e.getValue().getAsJsonObject();
+                        meta.versions.put(e.getKey(), new Version(v.get("device").getAsString(),
+                                v.has("lastPlayed") ? v.get("lastPlayed").getAsLong() : 0));
+                    }
+                });
             }
             if (json.has("lock") && json.get("lock").isJsonObject()) {
                 JsonObject lock = json.getAsJsonObject("lock");
@@ -58,18 +69,28 @@ final class WorldMeta {
             text.append("**In use on ").append(meta.lock.device()).append("** since ")
                     .append(WHEN.format(Instant.ofEpochMilli(meta.lock.since()))).append(".\n\n");
         }
-        text.append("| Version | Saved | Computer | Size |\n|---|---|---|---|\n");
+        text.append("| Version | Last played | Uploaded | Computer | Upload |\n|---|---|---|---|---|\n");
         for (int i = 0; i < versions.size(); i++) {
             CloudSave version = versions.get(i);
-            text.append("| ").append(i == 0 ? "Latest" : "Older").append(" | ").append(WHEN.format(version.uploaded()))
-                    .append(" | ").append(meta.versions.getOrDefault(version.stamp(), "unknown"))
-                    .append(" | ").append(String.format("%.1f MB", version.size() / (1024.0 * 1024))).append(" |\n");
+            Version details = meta.versions.get(version.stamp());
+            text.append("| ").append(i == 0 ? "Latest" : "Older")
+                    .append(" | ").append(details != null && details.lastPlayed() > 0
+                            ? WHEN.format(Instant.ofEpochMilli(details.lastPlayed())) : "unknown")
+                    .append(" | ").append(WHEN.format(version.uploaded()))
+                    .append(" | ").append(details != null ? details.device() : "unknown")
+                    .append(" | ").append(String.format("%.1f MB", version.size() / (1024.0 * 1024)))
+                    .append(version.isFull() ? " (full copy)" : " (changes only)").append(" |\n");
         }
         text.append("\nDon't edit or delete the attached files; load this world from Cloud Saves in Minecraft.\n\n");
 
         JsonObject json = new JsonObject();
         JsonObject versionJson = new JsonObject();
-        meta.versions.forEach(versionJson::addProperty);
+        meta.versions.forEach((stamp, v) -> {
+            JsonObject item = new JsonObject();
+            item.addProperty("device", v.device());
+            item.addProperty("lastPlayed", v.lastPlayed());
+            versionJson.add(stamp, item);
+        });
         json.add("versions", versionJson);
         if (meta.lock != null) {
             JsonObject lock = new JsonObject();
