@@ -3,9 +3,10 @@
 # Runs when a GitHub release tagged v<mod version>+<Minecraft version> (e.g. v2.0.0-beta.9+26.3) is published,
 # or by hand from the Actions tab for an existing tag. It uploads the release's jar with the Minecraft version taken
 # from the tag, Fabric as the loader, Fabric API as a required dependency, the release notes as the changelog, and
-# "beta" for GitHub pre-releases. Versions already on Modrinth are skipped, so re-running is safe.
+# "beta" for GitHub pre-releases. A version already on Modrinth isn't uploaded again; its changelog is updated to
+# match the release notes instead, so re-running after editing the notes syncs them.
 #
-# Needs a repository secret MODRINTH_TOKEN: a Modrinth personal access token with the "Read projects", "Read versions" and "Create versions" scopes.
+# Needs a repository secret MODRINTH_TOKEN: a Modrinth personal access token with the "Read projects", "Read versions", "Create versions" and "Write versions" scopes.
 name: Publish to Modrinth
 
 on:
@@ -56,8 +57,21 @@ jobs:
             echo "::error::Couldn't list the project's versions. Give the Modrinth token the 'Read versions' scope."
             exit 1
           }
-          if echo "$VERSIONS" | jq -e --arg v "$VERSION" 'any(.[]; .version_number == $v)' > /dev/null; then
-            echo "$VERSION is already on Modrinth."
+          EXISTING=$(echo "$VERSIONS" | jq -r --arg v "$VERSION" 'first(.[] | select(.version_number == $v)) | .id // empty')
+          if [ -n "$EXISTING" ]; then
+            gh release view "$TAG" -R "$REPO" --json body | jq '{changelog: .body}' > changelog.json
+            if [ "$(echo "$VERSIONS" | jq -r --arg id "$EXISTING" '.[] | select(.id == $id) | .changelog')" = "$(jq -r .changelog changelog.json)" ]; then
+              echo "$VERSION is already on Modrinth with the same changelog."
+              exit 0
+            fi
+            STATUS=$(curl -sS -o response.json -w '%{http_code}' -X PATCH "https://api.modrinth.com/v2/version/$EXISTING" \
+              -A "$UA" -H "Authorization: $MODRINTH_TOKEN" -H "Content-Type: application/json" --data @changelog.json)
+            if [ "$STATUS" != "204" ]; then
+              cat response.json
+              echo "::error::Couldn't update the changelog (HTTP $STATUS). Give the Modrinth token the 'Write versions' scope."
+              exit 1
+            fi
+            echo "$VERSION is already on Modrinth; updated its changelog to match the release notes."
             exit 0
           fi
 
