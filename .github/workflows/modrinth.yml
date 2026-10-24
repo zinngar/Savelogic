@@ -5,7 +5,7 @@
 # from the tag, Fabric as the loader, Fabric API as a required dependency, the release notes as the changelog, and
 # "beta" for GitHub pre-releases. Versions already on Modrinth are skipped, so re-running is safe.
 #
-# Needs a repository secret MODRINTH_TOKEN: a Modrinth personal access token with the "Create versions" scope.
+# Needs a repository secret MODRINTH_TOKEN: a Modrinth personal access token with the "Read projects", "Read versions" and "Create versions" scopes.
 name: Publish to Modrinth
 
 on:
@@ -27,7 +27,8 @@ jobs:
       - name: Upload the release jar to Modrinth
         env:
           GH_TOKEN: ${{ github.token }}
-          MODRINTH_TOKEN: ${{ secrets.MODRINTH_TOKEN }}
+          # MODRITH_TOKEN (sic) is also accepted, matching the secret as it was first created.
+          MODRINTH_TOKEN: ${{ secrets.MODRINTH_TOKEN || secrets.MODRITH_TOKEN }}
           TAG: ${{ github.event.release.tag_name || inputs.tag }}
           REPO: ${{ github.repository }}
           UA: zinngar/Savelogic/release-workflow (github.com/zinngar/Savelogic)
@@ -46,9 +47,16 @@ jobs:
           VERSION="${TAG#v}"
           MINECRAFT="${TAG##*+}"
 
-          PROJECT_ID=$(curl -fsS -A "$UA" "https://api.modrinth.com/v2/project/$PROJECT" | jq -r .id)
-          if curl -fsS -A "$UA" "https://api.modrinth.com/v2/project/$PROJECT_ID/version" \
-              | jq -e --arg v "$VERSION" 'any(.[]; .version_number == $v)' > /dev/null; then
+          # Authenticated, so this also works while the project is still under review (not public yet).
+          PROJECT_ID=$(curl -fsS -A "$UA" -H "Authorization: $MODRINTH_TOKEN" "https://api.modrinth.com/v2/project/$PROJECT" | jq -r .id) || {
+            echo "::error::Couldn't read the Modrinth project. Check that the token is valid and has the 'Read projects' scope."
+            exit 1
+          }
+          VERSIONS=$(curl -fsS -A "$UA" -H "Authorization: $MODRINTH_TOKEN" "https://api.modrinth.com/v2/project/$PROJECT_ID/version") || {
+            echo "::error::Couldn't list the project's versions. Give the Modrinth token the 'Read versions' scope."
+            exit 1
+          }
+          if echo "$VERSIONS" | jq -e --arg v "$VERSION" 'any(.[]; .version_number == $v)' > /dev/null; then
             echo "$VERSION is already on Modrinth."
             exit 0
           fi
@@ -73,8 +81,18 @@ jobs:
             }' > data.json
           cat data.json | jq 'del(.changelog)'
 
-          curl -fsS -X POST "https://api.modrinth.com/v2/version" \
+          STATUS=$(curl -sS -o response.json -w '%{http_code}' -X POST "https://api.modrinth.com/v2/version" \
             -A "$UA" -H "Authorization: $MODRINTH_TOKEN" \
             -F "data=@data.json;type=application/json" \
-            -F "file=@$JAR;type=application/java-archive" | jq '{id, version_number, version_type, game_versions}'
+            -F "file=@$JAR;type=application/java-archive")
+          if [ "$STATUS" != "200" ]; then
+            cat response.json
+            if [ "$STATUS" = "401" ]; then
+              echo "::error::Modrinth refused the upload. Give the Modrinth token the 'Create versions' scope."
+            else
+              echo "::error::Modrinth upload failed (HTTP $STATUS)."
+            fi
+            exit 1
+          fi
+          jq '{id, version_number, version_type, game_versions}' response.json
           echo "Published $VERSION for Minecraft $MINECRAFT: https://modrinth.com/mod/$PROJECT/version/$VERSION"
