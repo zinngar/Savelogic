@@ -15,7 +15,7 @@ Cloud saves for singleplayer: sync your worlds, mods and configs between compute
 
 - **Cloud saves.** Upload a world from the ☁ button next to Singleplayer, and load it on another computer.
 - **Fast saves.** After a world's first upload, only the files that changed are sent, usually a few MB instead of the whole world. A computer whose copy is up to date downloads only the newer changes.
-- **Auto-sync.** Synced worlds upload when you leave them. Opening one checks for a newer version from your other computer first.
+- **You choose what syncs.** Only the worlds you pick go to the cloud, so test worlds stay local. Synced worlds upload when you leave them. Opening one checks for a newer version from your other computer first.
 - **No accidental overwrites.** If another computer saved a newer version, SaveLogic asks before overwriting it and shows when each copy was last played. It also warns you if the world is still open on another computer.
 - **Version history.** The last few versions of each world are kept (5 by default), each labelled with when and on which computer it was saved. Restore any of them in two clicks.
 - **Big worlds welcome.** Worlds are split into 1 GB parts, so there's no practical size limit.

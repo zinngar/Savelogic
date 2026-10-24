@@ -339,7 +339,7 @@ public class CloudSync {
         return SaveLogic.CONFIG.device();
     }
 
-    static Path savesDir() {
+    public static Path savesDir() {
         return Minecraft.getInstance().getLevelSource().getBaseDir();
     }
 
