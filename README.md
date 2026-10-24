@@ -15,6 +15,7 @@ A Fabric mod for **Minecraft 26.3** that saves your singleplayer worlds to a **p
 *   **Version history:** the last few versions of each world are kept (5 by default), each labelled with when and on which computer it was saved, and any of them can be restored. See [Playing on several computers](#playing-on-several-computers).
 *   **No accidental overwrites:** if another computer saved a world after your copy was synced, SaveLogic asks before uploading over it, and warns when you open a world that is open on another computer or has a newer version in the cloud.
 *   **Auto-sync:** synced worlds upload automatically when you leave them.
+*   **You choose which worlds sync:** only worlds you upload go to the cloud, so test worlds stay on your computer. *☁ > Choose Synced Worlds* shows which worlds sync and lets you start or stop syncing each one.
 *   **Same mods everywhere:** upload your mods and mod configs once, then install that setup on any other computer with the same Minecraft version. See [Mods & configs](#mods--configs).
 *   **Schematics:** your Litematica schematics stay in sync between computers automatically; see [Schematics](#schematics).
 *   **Mod updates:** check your mods against Modrinth and update them in one go; see [Mod updates](#mod-updates).

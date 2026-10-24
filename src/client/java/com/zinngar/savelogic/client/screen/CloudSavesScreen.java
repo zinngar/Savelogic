@@ -52,9 +52,13 @@ public class CloudSavesScreen extends Screen {
         Button loadButton = this.addRenderableWidget(Button.builder(Component.translatable("savelogic.menu.load"),
                 button -> this.minecraft.gui.setScreen(new SaveLogicSelectionScreen(this)))
                 .bounds(right, top, 150, 20).build());
+        // Listing which worlds sync works offline; only its Sync/Upload buttons need the settings.
+        this.addRenderableWidget(Button.builder(Component.translatable("savelogic.menu.synced_worlds"),
+                button -> this.minecraft.gui.setScreen(new SyncedWorldsScreen(this)))
+                .bounds(left, top + 24, 150, 20).build());
 
         // Mods & configs
-        int setupTop = top + 40;
+        int setupTop = setupTop();
         Button uploadSetup = this.addRenderableWidget(Button.builder(Component.translatable("savelogic.menu.upload_setup"),
                 button -> confirmUploadSetup()).bounds(left, setupTop, 150, 20).build());
         Button installSetup;
@@ -103,8 +107,12 @@ public class CloudSavesScreen extends Screen {
         return Math.max(40, this.height / 4 - 10);
     }
 
+    private int setupTop() {
+        return top() + 60;
+    }
+
     private int schematicsTop() {
-        return top() + 104;
+        return setupTop() + 60;
     }
 
     private void confirmUploadSetup() {
@@ -193,14 +201,14 @@ public class CloudSavesScreen extends Screen {
         int top = top();
         graphics.centeredText(this.font, this.title, this.width / 2, top - 28, 0xFFFFFFFF);
         graphics.text(this.font, Component.translatable("savelogic.section.worlds"), left, top - 11, 0xFFA0A0A0);
-        graphics.text(this.font, Component.translatable("savelogic.section.setup"), left, top + 29, 0xFFA0A0A0);
+        graphics.text(this.font, Component.translatable("savelogic.section.setup"), left, setupTop() - 11, 0xFFA0A0A0);
         graphics.text(this.font, Component.translatable("savelogic.section.schematics"), left, schematicsTop() - 11, 0xFFA0A0A0);
         String schematicsStatus = SchematicSync.isRunning() ? "Syncing..."
                 : SaveLogic.CONFIG.schematicsAutoSync ? "Auto-sync on" : "Auto-sync off";
         graphics.text(this.font, schematicsStatus, left + 160, schematicsTop() + 6, 0xFFA0A0A0);
 
         // One status line above Settings/Back; the newest message wins.
-        int noteY = schematicsTop() + 30;
+        int noteY = schematicsTop() + 25;
         if (message != null) {
             graphics.centeredText(this.font, this.font.plainSubstrByWidth(message, this.width - 20), this.width / 2, noteY,
                     messageIsError ? 0xFFFF6060 : 0xFFA0A0A0);

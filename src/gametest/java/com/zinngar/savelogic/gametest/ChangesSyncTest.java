@@ -10,6 +10,7 @@ import com.zinngar.savelogic.client.SyncGate;
 import com.zinngar.savelogic.client.TransferStatus;
 import com.zinngar.savelogic.client.WorldSyncMarker;
 import com.zinngar.savelogic.client.screen.ChoiceScreen;
+import com.zinngar.savelogic.client.screen.SyncedWorldsScreen;
 import com.zinngar.savelogic.setup.SetupInstaller;
 import com.zinngar.savelogic.util.Progress;
 import com.zinngar.savelogic.util.WorldManifest;
@@ -156,6 +157,40 @@ public class ChangesSyncTest implements FabricClientGameTest {
         check(!intercepted[0], "a local-only world opens straight away (cloud names were remembered)");
         context.setScreen(TitleScreen::new);
         context.waitTicks(5);
+
+        // 7. Choosing which worlds sync: new worlds stay local, Stop Syncing keeps a world local, Sync links one.
+        int cloudWorlds = github.listWorlds().join().size();
+        Path testWorld;
+        try (TestSingleplayerContext world = context.worldBuilder().create()) {
+            testWorld = world.getWorldSave().getSaveDirectory();
+        }
+        context.waitForScreen(TitleScreen.class);
+        context.waitTicks(10);
+        waitForTransfer(context);
+        String testFolder = testWorld.getFileName().toString();
+        check(github.listWorlds().join().size() == cloudWorlds, "leaving a new world doesn't upload it");
+        check(!local(context, testFolder).synced() && !local(context, folder).synced(), "new and kept-local worlds are listed as this computer only");
+        check(local(context, folder + " (2)").synced() && local(context, folder + " (2)").cloudName().equals(folder),
+                "a downloaded copy is listed as synced with its cloud world");
+        context.setScreen(() -> new SyncedWorldsScreen(new TitleScreen()));
+        context.waitTicks(5);
+        context.takeScreenshot("synced-worlds");
+
+        context.runOnClient(mc -> SyncedWorldsScreen.stopSyncing(folder + " (2)"));
+        check(!local(context, folder + " (2)").synced(), "Stop Syncing marks the world as this computer only");
+        context.runOnClient(mc -> intercepted[0] = SyncGate.interceptOpen(folder + " (2)", new SelectWorldScreen(new TitleScreen())));
+        check(!intercepted[0], "a world that stopped syncing opens without checking the cloud");
+
+        context.runOnClient(mc -> CloudSync.uploadWorld(testFolder, false, mc.gui.screen())); // What its Sync button does.
+        waitForTransfer(context);
+        check(local(context, testFolder).synced() && cloud(github, testFolder) != null, "Sync uploads the world and from then on it syncs");
+        context.setScreen(TitleScreen::new);
+        context.waitTicks(5);
+    }
+
+    private static SyncedWorldsScreen.LocalWorld local(ClientGameTestContext context, String folder) {
+        return context.computeOnClient(mc -> SyncedWorldsScreen.localWorlds()).stream().filter(w -> w.folder().equals(folder)).findFirst()
+                .orElseThrow(() -> new AssertionError("world not listed: " + folder));
     }
 
     // --- Helpers ---

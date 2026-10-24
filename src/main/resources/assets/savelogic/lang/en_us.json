@@ -25,5 +25,11 @@
   "savelogic.menu.install_setup_short": "Install Mods & Configs",
   "savelogic.menu.sync_schematics": "Sync Schematics",
   "savelogic.section.schematics": "Schematics",
-  "savelogic.settings.schematics_sync": "Schematics sync"
+  "savelogic.settings.schematics_sync": "Schematics sync",
+  "savelogic.menu.synced_worlds": "Choose Synced Worlds",
+  "savelogic.worlds.title": "Synced Worlds",
+  "savelogic.worlds.help": "Only the worlds you choose go to the cloud.",
+  "savelogic.worlds.sync": "Sync",
+  "savelogic.worlds.upload_now": "Upload Now",
+  "savelogic.worlds.stop": "Stop Syncing"
 }
