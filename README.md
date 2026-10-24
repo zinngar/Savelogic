@@ -102,7 +102,7 @@ Worlds and mods & configs can be shared between computers on the same Minecraft 
 
 ## Releasing
 
-Publish a GitHub release tagged `v<mod version>+<Minecraft version>` (for example `v2.0.0-beta.9+26.3`) with the built jar attached, from the branch for that Minecraft version. The *Publish to Modrinth* workflow then uploads it to Modrinth (marked as beta for pre-releases). It needs a `MODRINTH_TOKEN` repository secret: a Modrinth personal access token with the *Create versions* scope. It can also be run by hand from the Actions tab for an existing tag. The Modrinth page text lives in [`docs/modrinth.md`](docs/modrinth.md).
+Publish a GitHub release tagged `v<mod version>+<Minecraft version>` (for example `v2.0.0-beta.9+26.3`) with the built jar attached, from the branch for that Minecraft version. The *Publish to Modrinth* workflow then uploads it to Modrinth (marked as beta for pre-releases). It needs a `MODRINTH_TOKEN` repository secret: a Modrinth personal access token with the *Read projects*, *Read versions* and *Create versions* scopes. It can also be run by hand from the Actions tab for an existing tag. The release notes become the Modrinth changelog, so keep them to a short list of what changed since the previous release; the full history stays in [`release_notes.md`](release_notes.md). The Modrinth page text lives in [`docs/modrinth.md`](docs/modrinth.md).
 
 ## Build
 
