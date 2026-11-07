@@ -20,6 +20,7 @@ Cloud saves for singleplayer: sync your worlds, mods and configs between compute
 - **Version history.** The last few versions of each world are kept (5 by default), each labelled with when and on which computer it was saved. Restore any of them in two clicks.
 - **Big worlds welcome.** Worlds are split into 1 GB parts, so there's no practical size limit.
 - **Same mods everywhere.** Upload your mods and configs once and install them on another computer. The swap happens after Minecraft closes, and your old mods are backed up first.
+- **Xaero's waypoints included.** If you use Xaero's Minimap, a world's waypoints travel with it.
 - **Schematics everywhere.** Your Litematica schematics sync between computers automatically. Deleted ones are backed up, and if one was changed on two computers, both copies are kept.
 - **Check for mod updates.** Finds newer versions of your mods on Modrinth for your Minecraft version, adds any libraries they need, and installs them after Minecraft closes, again with a backup.
 - **Progress bar** for every upload and download, with speed and time left.

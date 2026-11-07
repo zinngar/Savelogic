@@ -10,6 +10,7 @@ import com.zinngar.savelogic.client.screen.ChoiceScreen.Choice;
 import com.zinngar.savelogic.setup.SetupInstaller;
 import com.zinngar.savelogic.util.WorldManifest;
 import com.zinngar.savelogic.util.WorldPackage;
+import com.zinngar.savelogic.util.XaeroWaypoints;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.toasts.SystemToast;
@@ -133,6 +134,7 @@ public class CloudSync {
 
         CompletableFuture.supplyAsync(() -> {
             try {
+                captureWaypoints(worldDir);
                 WorldManifest base = marker.map(WorldSyncMarker::files).orElse(null);
                 WorldManifest manifest = WorldManifest.scan(worldDir, base, status);
                 String parent = changesParent(world, marker.orElse(null), cloudName);
@@ -172,6 +174,23 @@ public class CloudSync {
                         + (uploaded.prepared().parent() != null ? " (only the changes were uploaded)." : "."));
             }
         });
+    }
+
+    /** Waypoints are a bonus: failing to copy them never stops the world itself from syncing. */
+    private static void captureWaypoints(Path worldDir) {
+        try {
+            XaeroWaypoints.capture(FabricLoader.getInstance().getGameDir(), worldDir);
+        } catch (Exception e) {
+            SaveLogic.LOGGER.warn("Could not copy the Xaero's waypoints of {}", worldDir.getFileName(), e);
+        }
+    }
+
+    private static void restoreWaypoints(Path worldDir) {
+        try {
+            XaeroWaypoints.restore(FabricLoader.getInstance().getGameDir(), worldDir);
+        } catch (Exception e) {
+            SaveLogic.LOGGER.warn("Could not restore the Xaero's waypoints of {}", worldDir.getFileName(), e);
+        }
     }
 
     private record Prepared(WorldManifest manifest, String parent, boolean upToDate) {}
@@ -293,6 +312,7 @@ public class CloudSync {
                         ? last.manifest().withTimesFrom(worldDir)
                         : WorldManifest.scan(worldDir, null, status); // Uploaded before manifests existed.
                 new WorldSyncMarker(world.worldName(), version.stamp(), manifest).write(worldDir);
+                restoreWaypoints(worldDir);
                 return new Fetched(name, chain.fromHave(), chain.versions().size());
             } catch (RuntimeException e) {
                 throw e;
