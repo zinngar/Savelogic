@@ -17,6 +17,7 @@ A Fabric mod for **Minecraft 1.21.11** that saves your singleplayer worlds to a 
 *   **Auto-sync:** synced worlds upload automatically when you leave them.
 *   **You choose which worlds sync:** only worlds you upload go to the cloud, so test worlds stay on your computer. *☁ > Choose Synced Worlds* shows which worlds sync and lets you start or stop syncing each one.
 *   **Same mods everywhere:** upload your mods and mod configs once, then install that setup on any other computer with the same Minecraft version. See [Mods & configs](#mods--configs).
+*   **Xaero's waypoints:** if you use Xaero's Minimap, a world's waypoints travel with it, with the same version history. Waypoints on the computer you download to that differ are backed up to `savelogic-backups/waypoints` first. The explored map from Xaero's World Map isn't synced.
 *   **Schematics:** your Litematica schematics stay in sync between computers automatically; see [Schematics](#schematics).
 *   **Mod updates:** check your mods against Modrinth and update them in one go; see [Mod updates](#mod-updates).
 *   **Optional local backups:** zip a world into `.minecraft/savelogic-backups` every time you leave it.
