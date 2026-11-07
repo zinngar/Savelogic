@@ -24,6 +24,7 @@ public class SettingsScreen extends Screen {
     private EditBox deviceField;
     private boolean automaticBackup;
     private boolean schematicsAutoSync;
+    private boolean selfUpdateCheck;
     private boolean autoUpload;
     private int keepVersions;
     private Component connectionStatus = Component.empty();
@@ -33,6 +34,7 @@ public class SettingsScreen extends Screen {
         this.parent = parent;
         this.automaticBackup = SaveLogic.CONFIG.automaticBackup;
         this.schematicsAutoSync = SaveLogic.CONFIG.schematicsAutoSync;
+        this.selfUpdateCheck = SaveLogic.CONFIG.selfUpdateCheck;
         this.autoUpload = SaveLogic.CONFIG.autoUpload;
         this.keepVersions = SaveLogic.CONFIG.keepVersions;
     }
@@ -67,18 +69,21 @@ public class SettingsScreen extends Screen {
         this.addRenderableWidget(deviceField);
 
         this.addRenderableWidget(CycleButton.onOffBuilder(autoUpload)
-                .create(left, 124, 147, 20, Component.translatable("savelogic.settings.auto_upload"),
+                .create(left, 122, 147, 20, Component.translatable("savelogic.settings.auto_upload"),
                         (button, value) -> autoUpload = value));
         this.addRenderableWidget(CycleButton.builder((Integer value) -> Component.literal(String.valueOf(value)), keepVersions)
                 .withValues(KEEP_CHOICES)
-                .create(left + 153, 124, 147, 20, Component.translatable("savelogic.settings.keep_versions"),
+                .create(left + 153, 122, 147, 20, Component.translatable("savelogic.settings.keep_versions"),
                         (button, value) -> keepVersions = value));
         this.addRenderableWidget(CycleButton.onOffBuilder(automaticBackup)
-                .create(left, 148, 147, 20, Component.translatable("savelogic.settings.auto_backup"),
+                .create(left, 144, 147, 20, Component.translatable("savelogic.settings.auto_backup"),
                         (button, value) -> automaticBackup = value));
         this.addRenderableWidget(CycleButton.onOffBuilder(schematicsAutoSync)
-                .create(left + 153, 148, 147, 20, Component.translatable("savelogic.settings.schematics_sync"),
+                .create(left + 153, 144, 147, 20, Component.translatable("savelogic.settings.schematics_sync"),
                         (button, value) -> schematicsAutoSync = value));
+        this.addRenderableWidget(CycleButton.onOffBuilder(selfUpdateCheck)
+                .create(left, 166, 147, 20, Component.translatable("savelogic.settings.update_check"),
+                        (button, value) -> selfUpdateCheck = value));
 
         this.addRenderableWidget(Button.builder(Component.translatable("savelogic.settings.forget")
                         .withStyle(ChatFormatting.RED), button -> confirmForget())
@@ -94,6 +99,7 @@ public class SettingsScreen extends Screen {
             SaveLogic.CONFIG.keepVersions = keepVersions;
             SaveLogic.CONFIG.automaticBackup = automaticBackup;
             SaveLogic.CONFIG.schematicsAutoSync = schematicsAutoSync;
+            SaveLogic.CONFIG.selfUpdateCheck = selfUpdateCheck;
             SaveLogic.CONFIG.save();
             this.onClose();
         }).bounds(left + 153, this.height - 50, 147, 20).build());

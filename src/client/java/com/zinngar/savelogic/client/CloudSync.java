@@ -380,7 +380,7 @@ public class CloudSync {
                 Component.literal(title), Component.literal(message)));
     }
 
-    static String rootMessage(Throwable error) {
+    public static String rootMessage(Throwable error) {
         Throwable cause = error;
         while (cause instanceof CompletionException && cause.getCause() != null) {
             cause = cause.getCause();

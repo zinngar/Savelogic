@@ -23,6 +23,11 @@ public class Config {
     public boolean autoUpload = true;
     /** Sync the Litematica schematics folder automatically (at startup and when leaving a world). */
     public boolean schematicsAutoSync = true;
+    /** Look on GitHub once a day for a newer SaveLogic, and say so. It is only ever installed after a click. */
+    public boolean selfUpdateCheck = true;
+    /** When that last happened, and the newer version it found (empty if none). */
+    public long lastSelfUpdateCheck = 0;
+    public String selfUpdateVersion = "";
     /** How many versions of each world to keep in the cloud. */
     public int keepVersions = 5;
     /** Random id for this computer, used for world locks; never changes. */
@@ -113,6 +118,9 @@ public class Config {
         onDisk.autoUpload = this.autoUpload;
         onDisk.keepVersions = this.keepVersions;
         onDisk.schematicsAutoSync = this.schematicsAutoSync;
+        onDisk.selfUpdateCheck = this.selfUpdateCheck;
+        onDisk.lastSelfUpdateCheck = this.lastSelfUpdateCheck;
+        onDisk.selfUpdateVersion = this.selfUpdateVersion;
         onDisk.deviceId = this.deviceId;
         onDisk.deviceName = this.deviceName;
         onDisk.github.repositoryUrl = this.github.repositoryUrl;

@@ -31,5 +31,7 @@
   "savelogic.worlds.help": "Only the worlds you choose go to the cloud.",
   "savelogic.worlds.sync": "Sync",
   "savelogic.worlds.upload_now": "Upload Now",
-  "savelogic.worlds.stop": "Stop Syncing"
+  "savelogic.worlds.stop": "Stop Syncing",
+  "savelogic.settings.update_check": "Update check",
+  "savelogic.update.pending": "The SaveLogic update will be installed when you close Minecraft."
 }

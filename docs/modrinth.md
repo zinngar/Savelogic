@@ -22,7 +22,7 @@ Cloud saves for singleplayer: sync your worlds, mods and configs between compute
 - **Same mods everywhere.** Upload your mods and configs once and install them on another computer. The swap happens after Minecraft closes, and your old mods are backed up first.
 - **Xaero's waypoints included.** If you use Xaero's Minimap, a world's waypoints travel with it.
 - **Schematics everywhere.** Your Litematica schematics sync between computers automatically. Deleted ones are backed up, and if one was changed on two computers, both copies are kept.
-- **Check for mod updates.** Finds newer versions of your mods on Modrinth for your Minecraft version, adds any libraries they need, and installs them after Minecraft closes, again with a backup.
+- **Check for mod updates.** Finds newer versions of your mods on Modrinth for your Minecraft version, adds any libraries they need, and installs them after Minecraft closes, again with a backup. SaveLogic's own updates come from its GitHub releases and are installed the same way, only after you press Update.
 - **Progress bar** for every upload and download, with speed and time left.
 
 ## Setup
@@ -43,10 +43,11 @@ Your worlds then appear on the repository's **Releases** page, one release per w
 
 ## Privacy and network use
 
-SaveLogic only connects to the internet when you use it, and only to:
+SaveLogic only connects to:
 
-- **GitHub** (`api.github.com`, `uploads.github.com`): the repository *you* configure, to upload and download your worlds, your mods & configs and your schematics, and to record which of your computers has a world open.
+- **GitHub** (`api.github.com`, `uploads.github.com`): the repository *you* configure, to upload and download your worlds, your mods & configs and your schematics, and to record which of your computers has a world open. Synced worlds and schematics use this automatically once it's set up.
 - **Modrinth** (`api.modrinth.com`, `cdn.modrinth.com`): when you press *Check for Mod Updates*, to look up your installed mods by their file fingerprints and download the updates you choose.
+- **GitHub** (`api.github.com`, `github.com`): SaveLogic's own public releases, once a day at most and when you open Mod Updates, to see if there's a new SaveLogic, and to download it if you press Update. No token or personal data is sent. *Settings > Update check* turns off the daily check.
 
 There is no telemetry and no SaveLogic server. Your GitHub token is stored encrypted on your computer and is never uploaded with your worlds or settings. Keep the saves repository **private**: *Settings > Test* warns you if it's public.
 

@@ -8,6 +8,7 @@ import com.zinngar.savelogic.client.SaveLogicClient;
 import com.zinngar.savelogic.client.SetupSync;
 import com.zinngar.savelogic.SaveLogic;
 import com.zinngar.savelogic.client.SchematicSync;
+import com.zinngar.savelogic.client.SelfUpdate;
 import com.zinngar.savelogic.client.TransferStatus;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
@@ -214,6 +215,8 @@ public class CloudSavesScreen extends Screen {
                     messageIsError ? 0xFFFF6060 : 0xFFA0A0A0);
         } else if (SetupSync.isInstallPending()) {
             graphics.centeredText(this.font, Component.translatable("savelogic.setup.pending"), this.width / 2, noteY, 0xFFFFD060);
+        } else if (SelfUpdate.pendingFileName().isPresent()) {
+            graphics.centeredText(this.font, Component.translatable("savelogic.update.pending"), this.width / 2, noteY, 0xFFFFD060);
         } else if (CloudStorageManager.getProvider() == null) {
             graphics.centeredText(this.font, Component.translatable("savelogic.message.not_configured"), this.width / 2, noteY, 0xFFFF6060);
         }
