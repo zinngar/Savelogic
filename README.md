@@ -19,7 +19,7 @@ A Fabric mod for **Minecraft 1.21.11** that saves your singleplayer worlds to a 
 *   **Same mods everywhere:** upload your mods and mod configs once, then install that setup on any other computer with the same Minecraft version. See [Mods & configs](#mods--configs).
 *   **Xaero's waypoints:** if you use Xaero's Minimap, a world's waypoints travel with it, with the same version history. Waypoints on the computer you download to that differ are backed up to `savelogic-backups/waypoints` first. The explored map from Xaero's World Map isn't synced.
 *   **Schematics:** your Litematica schematics stay in sync between computers automatically; see [Schematics](#schematics).
-*   **Mod updates:** check your mods against Modrinth and update them in one go; see [Mod updates](#mod-updates).
+*   **Mod updates:** check your mods against Modrinth and update them in one go, and update SaveLogic itself from GitHub; see [Mod updates](#mod-updates).
 *   **Optional local backups:** zip a world into `.minecraft/savelogic-backups` every time you leave it.
 
 ## Setup
@@ -88,7 +88,13 @@ The `schematics` folder (where Litematica keeps its `.litematic` files; `.schem`
 
 If an update needs a library you don't have (for example a newer Fabric API or a new dependency), it's listed and added too. *Update* downloads everything and checks each file against Modrinth's fingerprint. A running game can't replace its own mods, so the updates are installed when you close Minecraft, after your current mods are moved to `savelogic-backups/setup-before-<date>`. To give your other computer the same updates, use *Upload My Mods & Configs* afterwards.
 
-SaveLogic never updates itself this way; new SaveLogic versions come from this repository's releases. Checking for updates doesn't need the GitHub settings.
+Checking for updates doesn't need the GitHub settings.
+
+### Updating SaveLogic itself
+
+SaveLogic's own updates come from this repository's releases, so the same screen lists a newer SaveLogic for your Minecraft version, and *Update* installs it when you close Minecraft. The old jar goes to `savelogic-backups/savelogic-before-<date>`, and if the swap fails the old version stays in place. A download is only accepted if it matches GitHub's checksum and really is that version of SaveLogic.
+
+Once a day at most, SaveLogic also asks GitHub whether there's a new version and shows a notice if so. It never downloads or installs anything until you press *Update*. Turn the notice off with *Settings > Update check*.
 
 ## Minecraft versions
 

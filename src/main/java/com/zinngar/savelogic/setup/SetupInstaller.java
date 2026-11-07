@@ -7,6 +7,7 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
@@ -23,6 +24,8 @@ import java.util.stream.Stream;
 public final class SetupInstaller {
 
     public static final String PENDING_DIR = "savelogic-pending-setup";
+    /** Holds a new version of SaveLogic itself, separately because a setup never touches SaveLogic's own jar. */
+    public static final String PENDING_UPDATE_DIR = "savelogic-pending-update";
     /** SaveLogic's own files in the config folder, which hold the GitHub token; never synced. */
     public static final Set<String> PRIVATE_CONFIG_FILES = Set.of("savelogic.json", "savelogic.key");
 
@@ -43,10 +46,21 @@ public final class SetupInstaller {
             out.println("Waiting for Minecraft (pid " + parentPid + ") to close...");
             ProcessHandle.of(parentPid).ifPresent(handle -> handle.onExit().join());
             try {
-                Path backup = install(gameDir, keep, out);
-                out.println(backup == null ? "Nothing to install." : "Done. Previous mods and configs are in " + backup);
+                if (Files.exists(gameDir.resolve(PENDING_DIR))) {
+                    Path backup = install(gameDir, keep, out);
+                    out.println(backup == null ? "Nothing to install." : "Done. Previous mods and configs are in " + backup);
+                }
             } catch (Exception e) {
                 out.println("Install failed: " + e);
+                e.printStackTrace(out);
+            }
+            try {
+                Path backup = installUpdate(gameDir, keep, out);
+                if (backup != null) {
+                    out.println("Done. The previous SaveLogic is in " + backup);
+                }
+            } catch (Exception e) {
+                out.println("SaveLogic update failed, so the current version stays. It will be tried again next time: " + e);
                 e.printStackTrace(out);
             }
         }
@@ -109,6 +123,51 @@ public final class SetupInstaller {
             out.println("Installed " + installed + " config file(s)");
         }
 
+        deleteRecursively(pending);
+        return backup;
+    }
+
+    /**
+     * Replaces SaveLogic's own jar with the one waiting in the update folder. Returns the backup folder, or null if no
+     * update was waiting. If anything goes wrong the old jar is put back, so SaveLogic is never left missing or twice.
+     */
+    public static Path installUpdate(Path gameDir, Set<String> ownJars, PrintStream out) throws IOException, InterruptedException {
+        Path pending = gameDir.resolve(PENDING_UPDATE_DIR);
+        List<Path> waiting = jars(pending);
+        if (waiting.isEmpty()) {
+            return null;
+        }
+        Path mods = gameDir.resolve("mods");
+        List<Path> current = ownJars.stream().map(mods::resolve).filter(Files::isRegularFile).toList();
+        if (current.isEmpty()) {
+            // Without the old jar to replace, adding this one could leave two copies of SaveLogic.
+            out.println("Couldn't find the current SaveLogic jar in the mods folder; the update wasn't installed.");
+            deleteRecursively(pending);
+            return null;
+        }
+        Path update = waiting.get(0);
+        String name = update.getFileName().toString();
+        Path backup = gameDir.resolve("savelogic-backups").resolve("savelogic-before-" + LocalDateTime.now().format(STAMP));
+        Files.createDirectories(backup);
+        // Fabric only loads .jar files, so this copy is ignored until it's complete and the old jar is out of the way.
+        Path part = mods.resolve(name + ".part");
+        Files.copy(update, part, StandardCopyOption.REPLACE_EXISTING);
+        List<Path> moved = new ArrayList<>();
+        try {
+            for (Path jar : current) {
+                retry(() -> Files.move(jar, backup.resolve(jar.getFileName())));
+                moved.add(jar);
+                out.println("Backed up " + jar.getFileName());
+            }
+            retry(() -> Files.move(part, mods.resolve(name), StandardCopyOption.REPLACE_EXISTING));
+        } catch (IOException | InterruptedException e) {
+            for (Path jar : moved) {
+                Files.move(backup.resolve(jar.getFileName()), jar, StandardCopyOption.REPLACE_EXISTING);
+            }
+            Files.deleteIfExists(part);
+            throw e;
+        }
+        out.println("Installed " + name);
         deleteRecursively(pending);
         return backup;
     }

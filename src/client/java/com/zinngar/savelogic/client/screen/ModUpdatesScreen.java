@@ -1,11 +1,14 @@
 package com.zinngar.savelogic.client.screen;
 
+import com.zinngar.savelogic.client.CloudSync;
 import com.zinngar.savelogic.client.ModUpdater;
+import com.zinngar.savelogic.client.SelfUpdate;
 import com.zinngar.savelogic.client.SetupSync;
 import com.zinngar.savelogic.client.TransferStatus;
 import com.zinngar.savelogic.mods.ModUpdatePlanner.Dependency;
 import com.zinngar.savelogic.mods.ModUpdatePlanner.ModStatus;
 import com.zinngar.savelogic.mods.ModUpdatePlanner.Plan;
+import com.zinngar.savelogic.update.SelfUpdater.Release;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
@@ -20,8 +23,9 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * Lists the installed mods with what Modrinth has for this Minecraft version. Updates are ticked by default; "Update"
- * downloads the ticked ones (plus libraries they need) and they are installed when Minecraft closes.
+ * Lists the installed mods with what Modrinth has for this Minecraft version, and SaveLogic itself with what GitHub has.
+ * Updates are ticked by default; "Update" downloads the ticked ones (plus libraries they need) and they are installed
+ * when Minecraft closes.
  */
 public class ModUpdatesScreen extends Screen {
 
@@ -30,6 +34,9 @@ public class ModUpdatesScreen extends Screen {
     private final Screen parent;
     private Plan plan;
     private final Set<String> selected = new HashSet<>();
+    private Release selfUpdate;
+    private boolean selfUpdateSelected = true;
+    private String selfUpdateError;
     private String status = "Checking your mods on Modrinth...";
     private boolean statusIsError;
     private int scroll;
@@ -54,6 +61,13 @@ public class ModUpdatesScreen extends Screen {
             statusIsError = true;
             this.rebuildWidgets();
         });
+        if (SelfUpdate.canUpdateItself()) {
+            SelfUpdate.find().whenComplete((release, error) -> this.minecraft.execute(() -> {
+                selfUpdate = release == null ? null : release.orElse(null);
+                selfUpdateError = error == null ? null : CloudSync.rootMessage(error);
+                this.rebuildWidgets();
+            }));
+        }
     }
 
     @Override
@@ -66,15 +80,12 @@ public class ModUpdatesScreen extends Screen {
         for (int i = scroll; i < Math.min(rows.size(), scroll + visible); i++) {
             Row row = rows.get(i);
             Button button = this.addRenderableWidget(Button.builder(row.label(), b -> {
-                if (row.update() != null) {
-                    String key = row.update().installed().sha1();
-                    if (!selected.remove(key)) {
-                        selected.add(key);
-                    }
+                if (row.action() != null) {
+                    row.action().run();
                     this.rebuildWidgets();
                 }
             }).bounds(left, y, 300, 20).tooltip(row.tooltip() != null ? Tooltip.create(row.tooltip()) : null).build());
-            button.active = row.update() != null && !TransferStatus.INSTANCE.isActive();
+            button.active = row.action() != null && !TransferStatus.INSTANCE.isActive();
             y += ROW_HEIGHT;
         }
         if (rows.size() > visible) {
@@ -91,18 +102,57 @@ public class ModUpdatesScreen extends Screen {
         }
 
         List<ModStatus> chosen = chosenUpdates();
-        Button update = this.addRenderableWidget(Button.builder(Component.literal(chosen.isEmpty() ? "Update"
-                        : "Update " + chosen.size() + " Mod" + (chosen.size() == 1 ? "" : "s")), b -> startUpdate())
+        boolean updatingSelf = chosenSelfUpdate() != null;
+        int count = chosen.size() + (updatingSelf ? 1 : 0);
+        Button update = this.addRenderableWidget(Button.builder(Component.literal(count == 0 ? "Update"
+                        : updatingSelf && chosen.isEmpty() ? "Update SaveLogic"
+                        : "Update " + count + " Mod" + (count == 1 ? "" : "s")), b -> startUpdate())
                 .bounds(this.width / 2 - 100, this.height - 26, 98, 20).build());
-        update.active = !chosen.isEmpty() && !TransferStatus.INSTANCE.isActive() && !SetupSync.isInstallPending();
+        update.active = (updatingSelf || (!chosen.isEmpty() && !SetupSync.isInstallPending())) && !TransferStatus.INSTANCE.isActive();
         this.addRenderableWidget(Button.builder(Component.translatable("gui.back"), b -> this.onClose())
                 .bounds(this.width / 2 + 2, this.height - 26, 98, 20).build());
     }
 
-    private record Row(Component label, Component tooltip, ModStatus update) {}
+    /** A row with an action can be clicked: it ticks or unticks an update. */
+    private record Row(Component label, Component tooltip, Runnable action) {}
+
+    private void toggle(ModStatus mod) {
+        String key = mod.installed().sha1();
+        if (!selected.remove(key)) {
+            selected.add(key);
+        }
+    }
+
+    private Release chosenSelfUpdate() {
+        return selfUpdateSelected && SelfUpdate.pendingFileName().isEmpty() ? selfUpdate : null;
+    }
+
+    /** SaveLogic's own row, if there is anything to say about it. */
+    private Row selfUpdateRow() {
+        if (SelfUpdate.pendingFileName().isPresent()) {
+            return new Row(Component.literal("SaveLogic update waiting: click to cancel").withStyle(ChatFormatting.YELLOW),
+                    Component.literal(SelfUpdate.pendingFileName().get() + " will be installed when you close Minecraft."),
+                    SelfUpdate::cancelPending);
+        }
+        if (selfUpdate != null) {
+            return new Row(Component.literal((selfUpdateSelected ? "☑ " : "☐ ") + "SaveLogic:  " + SelfUpdate.currentVersion()
+                    + "  →  " + selfUpdate.version()),
+                    Component.literal(selfUpdateSelected ? "Click to skip this update" : "Click to include this update"),
+                    () -> selfUpdateSelected = !selfUpdateSelected);
+        }
+        if (selfUpdateError != null) {
+            return new Row(Component.literal("SaveLogic: couldn't check GitHub").withStyle(ChatFormatting.GRAY),
+                    Component.literal(selfUpdateError), null);
+        }
+        return null;
+    }
 
     private List<Row> rows() {
         List<Row> rows = new ArrayList<>();
+        Row selfRow = selfUpdateRow();
+        if (selfRow != null) {
+            rows.add(selfRow);
+        }
         if (plan == null) {
             return rows;
         }
@@ -112,7 +162,7 @@ public class ModUpdatesScreen extends Screen {
                     boolean on = selected.contains(mod.installed().sha1());
                     rows.add(new Row(Component.literal((on ? "☑ " : "☐ ") + mod.title() + ":  "
                                     + mod.current().versionNumber() + "  →  " + mod.latest().versionNumber()),
-                            Component.literal(on ? "Click to skip this update" : "Click to include this update"), mod));
+                            Component.literal(on ? "Click to skip this update" : "Click to include this update"), () -> toggle(mod)));
                 }
                 case UP_TO_DATE -> rows.add(new Row(Component.literal("✔ " + mod.title() + "  " + mod.current().versionNumber())
                         .withStyle(ChatFormatting.GRAY), Component.literal("Up to date"), null));
@@ -148,17 +198,31 @@ public class ModUpdatesScreen extends Screen {
     }
 
     private void startUpdate() {
-        ModUpdater.stage(chosenUpdates(), neededDependencies(), () -> this.minecraft.setScreen(new ConfirmScreen(quit -> {
+        List<ModStatus> chosen = chosenUpdates();
+        Release self = chosenSelfUpdate();
+        if (chosen.isEmpty()) {
+            SelfUpdate.stage(self, () -> askToQuit(false));
+        } else if (self == null) {
+            ModUpdater.stage(chosen, neededDependencies(), () -> askToQuit(true));
+        } else {
+            ModUpdater.stage(chosen, neededDependencies(), () -> SelfUpdate.stage(self, () -> askToQuit(true)));
+        }
+        this.rebuildWidgets();
+    }
+
+    private void askToQuit(boolean modsToo) {
+        this.minecraft.setScreen(new ConfirmScreen(quit -> {
             if (quit) {
                 this.minecraft.stop();
             } else {
                 this.minecraft.setScreen(parent);
             }
-        }, Component.literal("Mod updates downloaded").withStyle(ChatFormatting.GREEN),
-                Component.literal("Close Minecraft to install them; your current mods are backed up to savelogic-backups first. "
-                        + "To get the same updates on your other computer, use Upload My Mods & Configs after restarting."),
-                Component.translatable("savelogic.setup.quit_now"), Component.translatable("savelogic.setup.later"))));
-        this.rebuildWidgets();
+        }, Component.literal(modsToo ? "Mod updates downloaded" : "SaveLogic update downloaded").withStyle(ChatFormatting.GREEN),
+                Component.literal(modsToo
+                        ? "Close Minecraft to install them; your current mods are backed up to savelogic-backups first. "
+                        + "To get the same updates on your other computer, use Upload My Mods & Configs after restarting."
+                        : "Close Minecraft to install it; the current version is backed up to savelogic-backups first."),
+                Component.translatable("savelogic.setup.quit_now"), Component.translatable("savelogic.setup.later")));
     }
 
     @Override

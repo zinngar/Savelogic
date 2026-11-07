@@ -18,6 +18,7 @@ import net.minecraft.client.Minecraft;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -229,13 +230,13 @@ public final class SetupSync {
 
     /** Starts the installer as its own process; it waits for this game to exit, then swaps the files. */
     private static void startInstallerIfPending() {
-        if (!isInstallPending()) {
+        if (!isInstallPending() && SelfUpdate.pendingFileName().isEmpty()) {
             return;
         }
         try {
             String java = ProcessHandle.current().info().command()
                     .orElse(Path.of(System.getProperty("java.home"), "bin", "java").toString());
-            Path classpath = Path.of(SetupInstaller.class.getProtectionDomain().getCodeSource().getLocation().toURI());
+            Path classpath = installerCopy(Path.of(SetupInstaller.class.getProtectionDomain().getCodeSource().getLocation().toURI()));
 
             List<String> command = new ArrayList<>(List.of(java, "-cp", classpath.toString(),
                     SetupInstaller.class.getName(), gameDir().toAbsolutePath().toString(),
@@ -249,6 +250,25 @@ public final class SetupSync {
             SaveLogic.LOGGER.info("Started the setup installer; it will finish after Minecraft closes");
         } catch (Exception e) {
             SaveLogic.LOGGER.error("Could not start the setup installer", e);
+        }
+    }
+
+    /**
+     * The installer may have to replace the jar it comes from, and Windows locks a jar while it is in use, so it runs
+     * from a copy. If the copy can't be made it runs from the jar itself; a failed swap then leaves the old version.
+     */
+    private static Path installerCopy(Path code) {
+        if (!Files.isRegularFile(code)) {
+            return code; // A development copy runs from a folder.
+        }
+        try {
+            Path copy = gameDir().resolve(".savelogic").resolve("installer.jar");
+            Files.createDirectories(copy.getParent());
+            Files.copy(code, copy, StandardCopyOption.REPLACE_EXISTING);
+            return copy;
+        } catch (Exception e) {
+            SaveLogic.LOGGER.warn("Could not copy the installer", e);
+            return code;
         }
     }
 
