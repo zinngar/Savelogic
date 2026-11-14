@@ -87,6 +87,8 @@ The `schematics` folder (where Litematica keeps its `.litematic` files; `.schem`
 *   mods with **no build for this Minecraft version yet**,
 *   files Modrinth **doesn't know** (for example CurseForge-only or self-built mods), which can't be checked.
 
+Before anything is installed, each downloaded update is checked against your other mods, using what the mods themselves declare. An update that wouldn't work with a mod you have (for example a renderer update that a shader mod doesn't support yet) is left out, and you're told why.
+
 If an update needs a library you don't have (for example a newer Fabric API or a new dependency), it's listed and added too. *Update* downloads everything and checks each file against Modrinth's fingerprint. A running game can't replace its own mods, so the updates are installed when you close Minecraft, after your current mods are moved to `savelogic-backups/setup-before-<date>`. To give your other computer the same updates, use *Upload My Mods & Configs* afterwards.
 
 Checking for updates doesn't need the GitHub settings.

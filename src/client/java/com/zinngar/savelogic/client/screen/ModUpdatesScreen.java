@@ -201,16 +201,17 @@ public class ModUpdatesScreen extends Screen {
         List<ModStatus> chosen = chosenUpdates();
         Release self = chosenSelfUpdate();
         if (chosen.isEmpty()) {
-            SelfUpdate.stage(self, () -> askToQuit(false));
+            SelfUpdate.stage(self, () -> askToQuit(false, List.of()));
         } else if (self == null) {
-            ModUpdater.stage(chosen, neededDependencies(), () -> askToQuit(true));
+            ModUpdater.stage(chosen, neededDependencies(), skipped -> askToQuit(true, skipped));
         } else {
-            ModUpdater.stage(chosen, neededDependencies(), () -> SelfUpdate.stage(self, () -> askToQuit(true)));
+            ModUpdater.stage(chosen, neededDependencies(), skipped -> SelfUpdate.stage(self, () -> askToQuit(true, skipped)));
         }
         this.rebuildWidgets();
     }
 
-    private void askToQuit(boolean modsToo) {
+    private void askToQuit(boolean modsToo, List<String> skipped) {
+        String left = skipped.isEmpty() ? "" : "\n\n" + String.join(".\n", skipped) + ".";
         this.minecraft.setScreen(new ConfirmScreen(quit -> {
             if (quit) {
                 this.minecraft.stop();
@@ -221,7 +222,7 @@ public class ModUpdatesScreen extends Screen {
                 Component.literal(modsToo
                         ? "Close Minecraft to install them; your current mods are backed up to savelogic-backups first. "
                         + "To get the same updates on your other computer, use Upload My Mods & Configs after restarting."
-                        : "Close Minecraft to install it; the current version is backed up to savelogic-backups first."),
+                        : "Close Minecraft to install it; the current version is backed up to savelogic-backups first.").append(left),
                 Component.translatable("savelogic.setup.quit_now"), Component.translatable("savelogic.setup.later")));
     }
 
