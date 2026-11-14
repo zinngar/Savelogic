@@ -73,7 +73,8 @@ public final class QuitGuard {
             case LEAVE_WORLD -> {
                 state = State.WAIT_FOR_UPLOAD;
                 waited = 0;
-                minecraft.disconnectWithSavingScreen();
+                // Queued like any other game task, to run between ticks rather than inside this one.
+                minecraft.schedule(minecraft::disconnectWithSavingScreen);
             }
             case WAIT_FOR_UPLOAD -> {
                 if (minecraft.level == null && !(minecraft.gui.screen() instanceof QuitGuardScreen)) {

@@ -1,6 +1,7 @@
 package com.zinngar.savelogic.client;
 
 import com.zinngar.savelogic.SaveLogic;
+import com.zinngar.savelogic.mods.ModCompatibility;
 import com.zinngar.savelogic.mods.ModUpdatePlanner;
 import com.zinngar.savelogic.mods.ModUpdatePlanner.Dependency;
 import com.zinngar.savelogic.mods.ModUpdatePlanner.InstalledMod;
@@ -61,9 +62,10 @@ public final class ModUpdater {
     /**
      * Downloads the chosen updates (and the libraries they need) into the pending folder, together with copies of
      * every other installed mod, so that installing replaces the mods folder with the updated set. Calls onReady on
-     * the render thread once everything is downloaded and checked.
+     * the render thread once everything is downloaded and checked, with a line for each update that was left out
+     * because it doesn't work with the other mods.
      */
-    public static void stage(List<ModStatus> updates, List<Dependency> dependencies, Runnable onReady) {
+    public static void stage(List<ModStatus> updates, List<Dependency> dependencies, Consumer<List<String>> onReady) {
         TransferStatus status = TransferStatus.INSTANCE;
         if (SetupSync.isInstallPending()) {
             CloudSync.toast("Mod updates not started", "Another install is already waiting for Minecraft to close.");
@@ -77,7 +79,7 @@ public final class ModUpdater {
         Path pending = FabricLoader.getInstance().getGameDir().resolve(SetupInstaller.PENDING_DIR);
         Path pendingMods = pending.resolve("mods");
 
-        CompletableFuture.runAsync(() -> {
+        CompletableFuture.supplyAsync(() -> {
             try {
                 Files.createDirectories(pendingMods);
                 Set<Path> replaced = new HashSet<>();
@@ -108,19 +110,65 @@ public final class ModUpdater {
                     Files.deleteIfExists(target);
                     modrinth.download(version, target, status);
                 }
+                status.phase("Checking the updates work with your other mods", 0);
+                List<String> skipped = leaveOutConflicts(pendingMods, updates, dependencies);
+                return new Staged(skipped, skipped.size() < updates.size());
             } catch (Exception e) {
                 throw new RuntimeException(e.getMessage(), e);
             }
-        }).whenComplete((ignored, error) -> minecraft.execute(() -> {
-            if (error == null) {
+        }).whenComplete((staged, error) -> minecraft.execute(() -> {
+            if (error == null && !staged.anyLeft()) {
+                SetupSync.cancelPendingInstall();
+                status.fail("Not updated: " + String.join("; ", staged.skipped()) + ".");
+            } else if (error == null) {
                 status.succeed("Downloaded. Close Minecraft to finish updating your mods.");
-                onReady.run();
+                onReady.accept(staged.skipped());
             } else {
                 SetupSync.cancelPendingInstall();
                 SaveLogic.LOGGER.error("Mod update download failed", error);
                 status.fail("Failed: " + CloudSync.rootMessage(error));
             }
         }));
+    }
+
+    private record Staged(List<String> skipped, boolean anyLeft) {}
+
+    /**
+     * Takes back every update that Fabric would refuse to load next to the other mods, putting the installed version
+     * in its place, and returns why. Repeats, since taking one update back can leave another without what it needs.
+     * Conflicts between mods that weren't updated are not this update's doing and are left alone.
+     */
+    private static List<String> leaveOutConflicts(Path pendingMods, List<ModStatus> updates, List<Dependency> dependencies)
+            throws java.io.IOException {
+        List<String> skipped = new ArrayList<>();
+        Set<ModStatus> remaining = new HashSet<>(updates);
+        boolean changed = true;
+        while (changed && !remaining.isEmpty()) {
+            changed = false;
+            for (ModCompatibility.Conflict conflict : ModCompatibility.conflicts(ModCompatibility.read(pendingMods))) {
+                for (ModStatus update : List.copyOf(remaining)) {
+                    Path updated = pendingMods.resolve(update.latest().fileName());
+                    if (!updated.equals(conflict.mod().jar()) && !updated.equals(conflict.other().jar())) {
+                        continue;
+                    }
+                    Files.deleteIfExists(updated);
+                    Files.copy(update.installed().jar(), pendingMods.resolve(update.installed().fileName()),
+                            java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+                    for (Dependency dependency : dependencies) {
+                        if (dependency.neededBy().equals(update.title())) {
+                            Files.deleteIfExists(pendingMods.resolve(dependency.version().fileName()));
+                        }
+                    }
+                    remaining.remove(update);
+                    skipped.add(update.title() + " left as it is, because " + conflict.description());
+                    changed = true;
+                }
+                if (changed) {
+                    break; // The set changed, so look again from the start.
+                }
+            }
+        }
+        return skipped;
     }
 
     private static Path modsDir() {
