@@ -50,6 +50,11 @@ public final class TransferStatus implements Progress {
         return result;
     }
 
+    /** True if the last transfer to finish failed. */
+    public boolean lastFailed() {
+        return failed;
+    }
+
     /** Starts tracking a transfer; returns false if one is already running. */
     public synchronized boolean begin(String title) {
         if (active) {

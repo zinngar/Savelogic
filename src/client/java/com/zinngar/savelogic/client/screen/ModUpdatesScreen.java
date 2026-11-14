@@ -54,7 +54,7 @@ public class ModUpdatesScreen extends Screen {
             result.updates().forEach(u -> selected.add(u.installed().sha1()));
             int updates = result.updates().size();
             status = updates == 0 ? "All your mods that Modrinth knows are up to date."
-                    : updates + " update" + (updates == 1 ? "" : "s") + " available. Untick any you want to skip.";
+                    : updates + " mod update" + (updates == 1 ? "" : "s") + " available. Untick any you want to skip.";
             this.rebuildWidgets();
         }, error -> {
             status = "Couldn't check for updates: " + error;

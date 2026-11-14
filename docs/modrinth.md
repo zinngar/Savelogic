@@ -54,5 +54,5 @@ There is no telemetry and no SaveLogic server. Your GitHub token is stored encry
 ## Good to know
 
 - This is a **beta**. Keep backups of worlds you care about.
-- Wait for the progress bar to finish before quitting Minecraft, or the upload in progress is lost (the previous cloud version stays safe).
+- If you quit while a cloud save is running, Minecraft finishes it first and then closes. You can still quit right away; the previous cloud version stays safe.
 - Source code, issues and changelog are on [GitHub](https://github.com/zinngar/Savelogic). Licensed under MIT.

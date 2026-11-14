@@ -29,6 +29,7 @@ public class VersionsScreen extends Screen {
         boolean idle = !TransferStatus.INSTANCE.isActive();
         int y = 48;
         int maxRows = Math.max(1, (this.height - 100) / 24);
+        int rowWidth = Math.min(360, this.width - 20); // Room for the time, computer and size on one line.
         for (int i = 0; i < Math.min(world.versions().size(), maxRows); i++) {
             CloudSave version = world.versions().get(i);
             String label = (i == 0 ? "Latest: " : "") + "played " + CloudText.when(version.played()) + "  ·  "
@@ -36,7 +37,7 @@ public class VersionsScreen extends Screen {
                     + CloudText.size(version.size()) + ")";
             Button button = this.addRenderableWidget(Button.builder(Component.literal(label),
                             b -> CloudSync.downloadWorld(world, version, this, folder -> this.minecraft.setScreen(parent)))
-                    .bounds(this.width / 2 - 140, y, 280, 20).build());
+                    .bounds(this.width / 2 - rowWidth / 2, y, rowWidth, 20).build());
             button.active = idle;
             y += 24;
         }

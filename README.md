@@ -10,6 +10,7 @@ A Fabric mod for **Minecraft 1.21.11** that saves your singleplayer worlds to a 
 *   **Load from cloud:** download a world into your saves folder. Existing local worlds are never overwritten; a download that would clash gets a name like `My World (2)`.
 *   **Big worlds:** each world is stored as its own GitHub *release* and split into 1 GB parts, so there is no practical size limit, and old copies are deleted rather than piling up in git history.
 *   **Fast saves:** after a world's first upload, saving sends only the files that changed (usually a few MB instead of the whole world), and a computer that is already in step downloads only the changes.
+*   **Safe quitting:** if you close Minecraft while a cloud save is running, it finishes first and then closes (or you can quit right away). Closing the window from inside a synced world leaves the world and uploads it first.
 *   **Safe re-uploads:** the new copy is fully uploaded before the old one is removed, so a failed upload never loses your cloud save.
 *   **Progress bar:** uploads and downloads show a bar at the top of the menus with percent, speed and time left, plus a clear success or error message when they finish.
 *   **Version history:** the last few versions of each world are kept (5 by default), each labelled with when and on which computer it was saved, and any of them can be restored. See [Playing on several computers](#playing-on-several-computers).
