@@ -3,7 +3,9 @@
   "package": "com.zinngar.savelogic.mixin",
   "compatibilityLevel": "JAVA_25",
   "client": [
+    "client.MinecraftMixin",
     "client.TitleScreenMixin",
+    "client.WindowAccessor",
     "client.WorldListWidgetEntryMixin"
   ],
   "injectors": {
