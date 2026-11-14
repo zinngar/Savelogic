@@ -43,7 +43,7 @@ A world becomes **synced** on a computer once you upload it from there or downlo
     *   If it's open on another computer, you're told which one and since when, and can play anyway or cancel. If that computer crashed or was switched off mid-game, playing anyway is safe.
     *   If another computer saved a newer version, you can download it and play (your copy is backed up first), play your copy, or cancel.
     *   Otherwise it opens straight away and is marked as in use on this computer.
-*   **Leaving the world** uploads it (if *Auto-upload* is on in Settings) and marks it as no longer in use. Wait for the progress bar to finish before quitting Minecraft. If another computer saved a newer version in the meantime, the automatic upload doesn't overwrite it and tells you instead.
+*   **Leaving the world** uploads it (if *Auto-upload* is on in Settings) and marks it as no longer in use. If you quit Minecraft before the progress bar finishes, it completes the upload first and then closes. If another computer saved a newer version in the meantime, the automatic upload doesn't overwrite it and tells you instead.
 *   **Uploading by hand** (*Save World to Cloud*) asks first if another computer saved a newer version: upload yours (theirs stays in history), upload yours as a separate world, or cancel.
 *   **Downloading a world you already have** asks whether to replace your copy (it's moved to `savelogic-backups/worlds` first) or keep both.
 *   **Version history:** *Load World from Cloud > Versions* lists the kept versions with when and where each was saved. Click one to restore it. *Settings > Keep versions* sets how many are kept (1, 3, 5 or 10). Each version takes space in your repository's releases.
