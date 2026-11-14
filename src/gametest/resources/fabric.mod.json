@@ -12,7 +12,8 @@
       "com.zinngar.savelogic.gametest.ModUpdatesTest",
       "com.zinngar.savelogic.gametest.SchematicsSyncTest",
       "com.zinngar.savelogic.gametest.XaeroWaypointsTest",
-      "com.zinngar.savelogic.gametest.SelfUpdateTest"
+      "com.zinngar.savelogic.gametest.SelfUpdateTest",
+      "com.zinngar.savelogic.gametest.GalleryScreenshots"
     ]
   },
   "depends": {
