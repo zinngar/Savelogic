@@ -103,12 +103,18 @@ public class ModUpdatesScreen extends Screen {
 
         List<ModStatus> chosen = chosenUpdates();
         boolean updatingSelf = chosenSelfUpdate() != null;
-        int count = chosen.size() + (updatingSelf ? 1 : 0);
-        Button update = this.addRenderableWidget(Button.builder(Component.literal(count == 0 ? "Update"
-                        : updatingSelf && chosen.isEmpty() ? "Update SaveLogic"
-                        : "Update " + count + " Mod" + (count == 1 ? "" : "s")), b -> startUpdate())
-                .bounds(this.width / 2 - 100, this.height - 26, 98, 20).build());
-        update.active = (updatingSelf || (!chosen.isEmpty() && !SetupSync.isInstallPending())) && !TransferStatus.INSTANCE.isActive();
+        // Mods are checked against each other by the SaveLogic that is running, so a newer SaveLogic goes in on its
+        // own first and checks the mod updates after the restart.
+        boolean selfFirst = updatingSelf || SelfUpdate.pendingFileName().isPresent();
+        Button update = this.addRenderableWidget(Button.builder(Component.literal(updatingSelf ? "Update SaveLogic"
+                        : chosen.isEmpty() ? "Update"
+                        : "Update " + chosen.size() + " Mod" + (chosen.size() == 1 ? "" : "s")), b -> startUpdate())
+                .bounds(this.width / 2 - 100, this.height - 26, 98, 20)
+                .tooltip(selfFirst && !chosen.isEmpty() ? Tooltip.create(Component.literal("SaveLogic is updated first. "
+                        + "Check for mod updates again after restarting, so the new version can check them against your other mods."))
+                        : null).build());
+        update.active = (updatingSelf || (!chosen.isEmpty() && !selfFirst && !SetupSync.isInstallPending()))
+                && !TransferStatus.INSTANCE.isActive();
         this.addRenderableWidget(Button.builder(Component.translatable("gui.back"), b -> this.onClose())
                 .bounds(this.width / 2 + 2, this.height - 26, 98, 20).build());
     }
@@ -200,12 +206,13 @@ public class ModUpdatesScreen extends Screen {
     private void startUpdate() {
         List<ModStatus> chosen = chosenUpdates();
         Release self = chosenSelfUpdate();
-        if (chosen.isEmpty()) {
-            SelfUpdate.stage(self, () -> askToQuit(false, List.of()));
-        } else if (self == null) {
+        if (self != null) {
+            int waiting = chosen.size();
+            SelfUpdate.stage(self, () -> askToQuit(false, waiting == 0 ? List.of()
+                    : List.of("Then open Mod Updates again for the " + waiting + " mod update" + (waiting == 1 ? "" : "s")
+                    + ", so the new SaveLogic can check " + (waiting == 1 ? "it" : "them") + " against your other mods")));
+        } else if (!chosen.isEmpty() && SelfUpdate.pendingFileName().isEmpty()) {
             ModUpdater.stage(chosen, neededDependencies(), skipped -> askToQuit(true, skipped));
-        } else {
-            ModUpdater.stage(chosen, neededDependencies(), skipped -> SelfUpdate.stage(self, () -> askToQuit(true, skipped)));
         }
         this.rebuildWidgets();
     }

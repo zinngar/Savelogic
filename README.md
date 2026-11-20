@@ -95,7 +95,7 @@ Checking for updates doesn't need the GitHub settings.
 
 ### Updating SaveLogic itself
 
-SaveLogic's own updates come from this repository's releases, so the same screen lists a newer SaveLogic for your Minecraft version, and *Update* installs it when you close Minecraft. The old jar goes to `savelogic-backups/savelogic-before-<date>`, and if the swap fails the old version stays in place. A download is only accepted if it matches GitHub's checksum and really is that version of SaveLogic.
+SaveLogic's own updates come from this repository's releases, so the same screen lists a newer SaveLogic for your Minecraft version, and *Update* installs it when you close Minecraft. The old jar goes to `savelogic-backups/savelogic-before-<date>`, and if the swap fails the old version stays in place. When SaveLogic and some mods both have updates, SaveLogic is updated on its own first; check for mod updates again after restarting, so the new version is the one that checks them against your other mods. A download is only accepted if it matches GitHub's checksum and really is that version of SaveLogic.
 
 Once a day at most, SaveLogic also asks GitHub whether there's a new version and shows a notice if so. It never downloads or installs anything until you press *Update*. Turn the notice off with *Settings > Update check*.
 

@@ -7,7 +7,7 @@
 * **Progress bar for uploads and downloads** at the top of the menus (percent, MB, speed, time left), with the result shown when they finish.
 * **Cloud Saves is a ☁ button next to Singleplayer**, so it is always on screen at any GUI scale.
 * **Test Connection** now checks what you typed, and warns if the token can't write or the repository is public.
-* **Mod updates are checked first:** an update that doesn't work with one of your other mods is left out, and you're told why.
+* **Mod updates are checked first:** an update that doesn't work with one of your other mods is left out, and you're told why. When SaveLogic has an update too, it is installed on its own first, so the newest checks are the ones that run.
 * **Safe quitting:** closing Minecraft during a cloud save now waits for it to finish, and closing the window from inside a synced world uploads it first.
 * **SaveLogic can update itself:** Mod Updates lists newer versions from GitHub and installs them when Minecraft closes, keeping the old jar as a backup. A once-a-day notice can be turned off in Settings.
 * **Xaero's waypoints sync with the world:** waypoints from Xaero's Minimap upload and download with each synced world, including its version history, and differing local waypoints are backed up first.
