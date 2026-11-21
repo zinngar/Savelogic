@@ -17,7 +17,7 @@ public class AutoBackupManager {
     /** Zips the world into .minecraft/savelogic-backups/<world>_<timestamp>.zip. */
     public static void backupWorld(Path worldDir) {
         String worldName = worldDir.getFileName().toString();
-        Path backupDir = FabricLoader.getInstance().getGameDir().resolve("savelogic-backups");
+        Path backupDir = backupDir();
         Path zipPath = backupDir.resolve(worldName + "_" + LocalDateTime.now().format(FORMAT) + ".zip");
 
         try {
@@ -27,5 +27,25 @@ public class AutoBackupManager {
         } catch (IOException e) {
             SaveLogic.LOGGER.error("Failed to create backup of {}", worldDir, e);
         }
+        prune();
+    }
+
+    /** Removes backups beyond the number kept (see {@link BackupPruner}), off the render thread. */
+    public static void pruneInBackground() {
+        Thread thread = new Thread(AutoBackupManager::prune, "SaveLogic backup cleanup");
+        thread.setDaemon(true);
+        thread.start();
+    }
+
+    private static synchronized void prune() {
+        BackupPruner.Result result = BackupPruner.prune(backupDir(), SaveLogic.CONFIG.keepBackups);
+        if (result.removed() > 0) {
+            SaveLogic.LOGGER.info("Removed {} old backup(s) from savelogic-backups, freeing {}", result.removed(),
+                    BackupPruner.describe(result.freedBytes()));
+        }
+    }
+
+    public static Path backupDir() {
+        return FabricLoader.getInstance().getGameDir().resolve("savelogic-backups");
     }
 }

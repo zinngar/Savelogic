@@ -2,21 +2,28 @@ package com.zinngar.savelogic.client.screen;
 
 import com.zinngar.savelogic.GitHubStorageProvider;
 import com.zinngar.savelogic.SaveLogic;
+import com.zinngar.savelogic.backup.AutoBackupManager;
+import com.zinngar.savelogic.backup.BackupPruner;
 import com.zinngar.savelogic.config.Config;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.CycleButton;
 import net.minecraft.client.gui.components.EditBox;
+import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.screens.ConfirmScreen;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.Style;
 import net.minecraft.util.FormattedCharSequence;
 
+import java.util.concurrent.CompletableFuture;
+
 public class SettingsScreen extends Screen {
 
     private static final Integer[] KEEP_CHOICES = {1, 3, 5, 10};
+    /** 0 keeps every backup. */
+    private static final Integer[] KEEP_BACKUP_CHOICES = {1, 3, 5, 10, 0};
 
     private final Screen parent;
     private EditBox repoUrlField;
@@ -27,6 +34,9 @@ public class SettingsScreen extends Screen {
     private boolean selfUpdateCheck;
     private boolean autoUpload;
     private int keepVersions;
+    private int keepBackups;
+    /** Size of savelogic-backups, worked out in the background; null until then. */
+    private String backupsSize;
     private Component connectionStatus = Component.empty();
 
     public SettingsScreen(Screen parent) {
@@ -37,6 +47,14 @@ public class SettingsScreen extends Screen {
         this.selfUpdateCheck = SaveLogic.CONFIG.selfUpdateCheck;
         this.autoUpload = SaveLogic.CONFIG.autoUpload;
         this.keepVersions = SaveLogic.CONFIG.keepVersions;
+        this.keepBackups = SaveLogic.CONFIG.keepBackups;
+        CompletableFuture.supplyAsync(() -> BackupPruner.describe(BackupPruner.sizeOf(AutoBackupManager.backupDir())))
+                .thenAccept(size -> net.minecraft.client.Minecraft.getInstance().execute(() -> {
+                    backupsSize = size;
+                    if (this.minecraft != null && this.minecraft.gui.screen() == this) {
+                        this.rebuildWidgets();
+                    }
+                }));
     }
 
     @Override
@@ -84,6 +102,12 @@ public class SettingsScreen extends Screen {
         this.addRenderableWidget(CycleButton.onOffBuilder(selfUpdateCheck)
                 .create(left, 166, 147, 20, Component.translatable("savelogic.settings.update_check"),
                         (button, value) -> selfUpdateCheck = value));
+        this.addRenderableWidget(CycleButton.builder((Integer value) -> Component.literal(value == 0 ? "All" : String.valueOf(value)), keepBackups)
+                .withValues(KEEP_BACKUP_CHOICES)
+                .create(left + 153, 166, 147, 20, Component.translatable("savelogic.settings.keep_backups"),
+                        (button, value) -> keepBackups = value))
+                .setTooltip(Tooltip.create(Component.literal("How many backups of each world, and of your mods, to keep in "
+                        + "savelogic-backups. Older ones are deleted." + (backupsSize == null ? "" : " They use " + backupsSize + " now."))));
 
         this.addRenderableWidget(Button.builder(Component.translatable("savelogic.settings.forget")
                         .withStyle(ChatFormatting.RED), button -> confirmForget())
@@ -98,9 +122,14 @@ public class SettingsScreen extends Screen {
             SaveLogic.CONFIG.autoUpload = autoUpload;
             SaveLogic.CONFIG.keepVersions = keepVersions;
             SaveLogic.CONFIG.automaticBackup = automaticBackup;
+            boolean fewerBackups = keepBackups != 0 && (SaveLogic.CONFIG.keepBackups == 0 || keepBackups < SaveLogic.CONFIG.keepBackups);
+            SaveLogic.CONFIG.keepBackups = keepBackups;
             SaveLogic.CONFIG.schematicsAutoSync = schematicsAutoSync;
             SaveLogic.CONFIG.selfUpdateCheck = selfUpdateCheck;
             SaveLogic.CONFIG.save();
+            if (fewerBackups) {
+                AutoBackupManager.pruneInBackground();
+            }
             this.onClose();
         }).bounds(left + 153, this.height - 50, 147, 20).build());
 
@@ -143,6 +172,6 @@ public class SettingsScreen extends Screen {
         graphics.text(this.font, Component.translatable("savelogic.settings.repository"), left, 20, 0xFFA0A0A0);
         graphics.text(this.font, Component.translatable("savelogic.settings.token"), left, 54, 0xFFA0A0A0);
         graphics.text(this.font, Component.translatable("savelogic.settings.device"), left, 88, 0xFFA0A0A0);
-        graphics.textWithWordWrap(this.font, connectionStatus, left, 172, 300, 0xFFFFFFFF);
+        graphics.textWithWordWrap(this.font, connectionStatus, left, 192, 300, 0xFFFFFFFF);
     }
 }
