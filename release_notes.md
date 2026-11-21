@@ -18,5 +18,6 @@
 * **One question for old copies:** opening an unsynced world that has the same name as a cloud world asks which copy to use, showing when each was last played; prompts everywhere now show last-played times.
 * **Version history and safe syncing between computers:** each world keeps its last versions (5 by default) with the computer and time each was saved, and any version can be restored. Uploads ask before overwriting newer progress from another computer, opening a world warns if it's open elsewhere or there's a newer version, and synced worlds upload automatically when you leave them.
 * **Sync your mods and configs:** upload your mods and config folders and install them on another computer; the swap happens after Minecraft closes, with a backup of what was there before.
+* **Backups don't fill your disk any more:** `savelogic-backups` keeps the newest 3 backups of each world, of your mods and of SaveLogic, and deletes older ones. Change it with *Settings > Backups kept*.
 * Fixed local auto-backups zipping the wrong folder.
 * Removed Google Drive support. Existing users need to paste their GitHub token into Settings again.

@@ -1,6 +1,7 @@
 package com.zinngar.savelogic.client;
 
 import com.zinngar.savelogic.GitHubStorageProvider;
+import com.zinngar.savelogic.backup.AutoBackupManager;
 import com.zinngar.savelogic.GitHubStorageProvider.Chain;
 import com.zinngar.savelogic.GitHubStorageProvider.CloudSave;
 import com.zinngar.savelogic.GitHubStorageProvider.CloudWorld;
@@ -300,6 +301,7 @@ public class CloudSync {
                         Path backups = FabricLoader.getInstance().getGameDir().resolve("savelogic-backups").resolve("worlds");
                         Files.createDirectories(backups);
                         Files.move(local, backups.resolve(folder + "_" + LocalDateTime.now().format(BACKUP_STAMP)));
+                        AutoBackupManager.pruneInBackground();
                     } else {
                         for (int i = 2; Files.exists(savesDir.resolve(name)); i++) {
                             name = folder + " (" + i + ")";

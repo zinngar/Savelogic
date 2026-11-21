@@ -21,6 +21,7 @@
   "savelogic.settings.device": "This computer's name (shown in version history)",
   "savelogic.settings.auto_upload": "Auto-upload",
   "savelogic.settings.keep_versions": "Keep versions",
+  "savelogic.settings.keep_backups": "Backups kept",
   "savelogic.menu.mod_updates": "Check for Mod Updates",
   "savelogic.menu.install_setup_short": "Install Mods & Configs",
   "savelogic.menu.sync_schematics": "Sync Schematics",

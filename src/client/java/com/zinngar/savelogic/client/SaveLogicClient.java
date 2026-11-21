@@ -25,6 +25,7 @@ public class SaveLogicClient implements ClientModInitializer {
         SchematicSync.register();
         SelfUpdate.register();
         QuitGuard.register();
+        AutoBackupManager.pruneInBackground(); // Also tidies up after installs that ran while Minecraft was closed.
 
         // Runs after the singleplayer server has saved and closed the world, so the files are complete.
         ServerLifecycleEvents.SERVER_STOPPED.register(server -> {

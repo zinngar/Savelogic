@@ -19,6 +19,8 @@ public class Config {
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
 
     public boolean automaticBackup = false;
+    /** How many backups of each world (and of the mods, and of SaveLogic) to keep in savelogic-backups; 0 keeps all. */
+    public int keepBackups = 3;
     /** Upload synced worlds automatically when leaving them. */
     public boolean autoUpload = true;
     /** Sync the Litematica schematics folder automatically (at startup and when leaving a world). */
@@ -62,6 +64,10 @@ public class Config {
         }
         if (deviceName == null || deviceName.isBlank()) {
             deviceName = defaultDeviceName();
+            changed = true;
+        }
+        if (keepBackups < 0) {
+            keepBackups = 3;
             changed = true;
         }
         if (keepVersions < 1) {
@@ -115,6 +121,7 @@ public class Config {
     public void save() {
         Config onDisk = new Config();
         onDisk.automaticBackup = this.automaticBackup;
+        onDisk.keepBackups = this.keepBackups;
         onDisk.autoUpload = this.autoUpload;
         onDisk.keepVersions = this.keepVersions;
         onDisk.schematicsAutoSync = this.schematicsAutoSync;

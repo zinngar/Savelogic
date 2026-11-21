@@ -21,7 +21,7 @@ A Fabric mod for **Minecraft 26.3** that saves your singleplayer worlds to a **p
 *   **Xaero's waypoints:** if you use Xaero's Minimap, a world's waypoints travel with it, with the same version history. Waypoints on the computer you download to that differ are backed up to `savelogic-backups/waypoints` first. The explored map from Xaero's World Map isn't synced.
 *   **Schematics:** your Litematica schematics stay in sync between computers automatically; see [Schematics](#schematics).
 *   **Mod updates:** check your mods against Modrinth and update them in one go, and update SaveLogic itself from GitHub; see [Mod updates](#mod-updates).
-*   **Optional local backups:** zip a world into `.minecraft/savelogic-backups` every time you leave it.
+*   **Optional local backups:** zip a world into `.minecraft/savelogic-backups` every time you leave it. Only the newest few backups are kept (see [Backups on your computer](#backups-on-your-computer)).
 
 ## Setup
 
@@ -98,6 +98,10 @@ Checking for updates doesn't need the GitHub settings.
 SaveLogic's own updates come from this repository's releases, so the same screen lists a newer SaveLogic for your Minecraft version, and *Update* installs it when you close Minecraft. The old jar goes to `savelogic-backups/savelogic-before-<date>`, and if the swap fails the old version stays in place. When SaveLogic and some mods both have updates, SaveLogic is updated on its own first; check for mod updates again after restarting, so the new version is the one that checks them against your other mods. A download is only accepted if it matches GitHub's checksum and really is that version of SaveLogic.
 
 Once a day at most, SaveLogic also asks GitHub whether there's a new version and shows a notice if so. It never downloads or installs anything until you press *Update*. Turn the notice off with *Settings > Update check*.
+
+## Backups on your computer
+
+Everything SaveLogic replaces or deletes on your computer is kept in `.minecraft/savelogic-backups` first: local world backups, world copies replaced by a download, your mods from before each install or mod update, SaveLogic's old jar, and synced schematics and waypoints. So that this folder doesn't fill your disk, only the newest **3** of each world's backups (and of the mods, and of SaveLogic) are kept, and older ones are deleted at startup and whenever a new backup is made. Change the number, or choose *All* to never delete any, with *Settings > Backups kept*; its tooltip shows how much space the backups use. Files and folders you put there yourself are never touched.
 
 ## Minecraft versions
 
